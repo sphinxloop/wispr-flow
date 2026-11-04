@@ -4,6 +4,10 @@
 export type Speaker = 'survivor' | 'nova';
 export interface Line { id: string; speaker: Speaker; text: string }
 export interface Cue { start: number; end: number; text: string } // seconds
+export type CoreState = 'dormant' | 'alert' | 'online' | 'speaking' | 'surge' | 'hidden';
+export type Tone = 'dim' | 'ok' | 'warn' | 'bad' | 'alert'; // alert = red + blinking
+export interface StatusRow { key: string; label: string; value: string; tone: Tone; bar?: boolean }
+export interface Stage { core: CoreState; status?: Record<string, [value: string, tone?: Tone, label?: string]> }
 
 export const CONFIG = {
   title: 'THE LAST CHANNEL',
@@ -110,6 +114,59 @@ export const CONFIG = {
     promptPlaceholder: '_',
     maxLogLines: 60,
     glitchLineEveryMs: [4000, 11000] as [number, number], // random interval for a passing glitch line
+
+    headerGlyph: '◈',
+    logTitle: 'SYSTEM LOG',
+    statusTitle: 'SYSTEM STATUS',
+    clockStart: '16:07:31', // the fake clock (hh:mm:ss) starts here and counts real seconds
+    dateShort: '14.03.2041',
+    promptTransmitting: 'NOVA TRANSMITTING…',
+    lightLabels: { 'amber-pulse': 'STANDBY', green: 'ONLINE', red: 'SIGNAL SPIKE', off: 'OFFLINE' } as Record<string, string>,
+
+    // Typed into the log the first time the monitor appears (before the standby lines).
+    boot: [
+      'BIOS v4.1 — MESH NODE 07',
+      'CHECKING MEMORY ........ 61% CORRUPTED',
+      'GRID CONNECTION ........ NONE',
+      'BACKUP CELL ............ 3%',
+      'INPUT DEVICES .......... 0 FOUND',
+      'LOADING NOVA KERNEL ....  [DORMANT]',
+    ],
+    bootCharMs: 8,
+
+    // The Nova core visual (centrepiece).
+    core: {
+      name: 'NOVA',
+      words: { dormant: 'STANDBY', alert: 'SIGNAL SPIKE', online: 'ONLINE', speaking: 'TRANSMITTING', surge: 'FULL ACCESS', hidden: '' } as Record<CoreState, string>,
+      surgeMs: 3600, // how long the surge lasts before the core settles to "online"
+      glitchMs: 700, // glitch burst when the alert starts
+    },
+
+    // SYSTEM STATUS rows (key -> label / value / tone). `bar` draws a segmented bar from the number in the value.
+    statusSegments: 10,
+    statusRows: [
+      { key: 'nova', label: 'NOVA', value: 'STANDBY', tone: 'warn' },
+      { key: 'power', label: 'POWER', value: '3%', tone: 'warn', bar: true },
+      { key: 'mesh', label: 'MESH LINK', value: '1/∞', tone: 'dim' },
+      { key: 'keyboard', label: 'KEYBOARD', value: 'DESTROYED', tone: 'bad' },
+      { key: 'voice', label: 'VOICE CHANNEL', value: 'OPEN', tone: 'ok' },
+      { key: 'threat', label: 'THREAT', value: 'LOW', tone: 'dim' },
+      { key: 'date', label: 'DATE', value: '14 MAR 2041', tone: 'warn' },
+    ] as StatusRow[],
+
+    // Core state + status values per key moment (applied on top of the rows above).
+    stages: {
+      standby: { core: 'dormant' },
+      spike: { core: 'alert', status: { threat: ['HIGH', 'alert'] } },
+      listening: { core: 'dormant', status: { threat: ['LISTENING', 'warn'] } },
+      online: { core: 'online', status: { nova: ['ONLINE', 'ok'], threat: ['LISTENING', 'warn'] } },
+      granted: { core: 'surge', status: { nova: ['ONLINE', 'ok'], power: ['41%', 'ok'], threat: ['LISTENING', 'warn'] } },
+      act2: { core: 'online', status: { nova: ['ONLINE', 'ok'], power: ['41%', 'ok'], threat: ['LISTENING', 'warn'] } },
+      relay: {
+        core: 'hidden',
+        status: { nova: ['ONLINE', 'ok'], power: ['41%', 'ok'], mesh: ['0/3 LOCATED', 'warn', 'RELAY NODES'], threat: ['LISTENING', 'warn'] },
+      },
+    } as Record<string, Stage>,
   },
 
   act2: {

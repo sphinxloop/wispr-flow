@@ -15,6 +15,8 @@ export class VoiceInput {
   private active = false;
   private coarse = isCoarse();
   onSubmit: (raw: string, normalized: string) => void = () => {};
+  /** A real voice insert arrived (drives the prompt bar's level meter). */
+  onVoiceInsert: () => void = () => {};
 
   constructor(prompt: HTMLElement, private warn: HTMLElement, private sfx: Sfx, private isLocked: () => boolean) {
     this.el = h('input', 'voice-input', prompt);
@@ -73,7 +75,7 @@ export class VoiceInput {
     // Small follow-ups right after a voice insert (e.g. a trailing space) are part of it.
     const inGrace = now - this.lastVoiceAt < 600;
     if (added >= CONFIG.timing.minVoiceChars || (added >= 1 && inGrace)) {
-      if (added >= CONFIG.timing.minVoiceChars) this.lastVoiceAt = now;
+      if (added >= CONFIG.timing.minVoiceChars) { this.lastVoiceAt = now; this.onVoiceInsert(); }
       clearTimeout(this.submitTimer);
       this.submitTimer = window.setTimeout(() => this.submit(), CONFIG.timing.autoSubmitMs);
     } else if (added >= 1) {

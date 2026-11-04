@@ -9,6 +9,7 @@ export const archiveStep: Step = {
   enter(g) {
     const { monitor, relay } = g.ui;
     enterMonitor(g, 'green', true);
+    monitor.applyStage('relay');
     // Debug jump (or an interrupted relay): show file, stamp and globe at once.
     if (!relay.complete) relay.buildInstant();
     if (!monitor.contains(CONFIG.act2.prompt)) monitor.appendLine(CONFIG.act2.prompt, 'faint');

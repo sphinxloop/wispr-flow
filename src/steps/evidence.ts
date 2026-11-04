@@ -9,6 +9,7 @@ export const evidenceStep: Step = {
   enter(g) {
     const { monitor, artifacts } = g.ui;
     enterMonitor(g, 'green');
+    monitor.applyStage('online');
     g.state.wrongAuthCount = 0;
     if (!monitor.contains(CONFIG.screens.authPrompt)) {
       monitor.setLines([...CONFIG.screens.online, CONFIG.screens.authPrompt]);

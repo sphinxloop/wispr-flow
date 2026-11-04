@@ -10,6 +10,7 @@ export const relayStep: Step = {
     const { monitor, relay, effects } = g.ui;
     const A = CONFIG.act2;
     enterMonitor(g, 'green', true);
+    monitor.applyStage('relay');
     g.inputLocked = true;
 
     relay.openFile();

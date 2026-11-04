@@ -11,6 +11,7 @@ export const grantedStep: Step = {
     g.ui.artifacts.hide();
     g.sfx.powerSurge();
     monitor.setPower(CONFIG.terminal.powerGranted);
+    monitor.applyStage('granted');
     g.state.fans = g.sfx.fans();
     monitor.brighten(true);
     effects.flash('#fff6d6', 700);

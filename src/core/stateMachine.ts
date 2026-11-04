@@ -28,6 +28,7 @@ export interface GameState {
   rumble: Handle | null;
   fans: Handle | null;
   fromBlack: boolean; // the monitor should fade in from black
+  booted: boolean; // the boot sequence has been typed once
 }
 
 const newState = (): GameState => ({
@@ -36,6 +37,7 @@ const newState = (): GameState => ({
   rumble: null,
   fans: null,
   fromBlack: false,
+  booted: false,
 });
 
 export interface Step {

@@ -59,12 +59,17 @@ export class Dialogue {
     }
     typing.catch(() => {});
 
-    const playing = buffer && this.canPlay() ? this.playBuffer(buffer, nova, signal) : null;
-    if (playing) {
-      await Promise.all([playing, typing]);
-    } else {
-      const ms = CONFIG.timing.noAudioBaseMs + line.text.length * CONFIG.timing.noAudioPerCharMs;
-      await Promise.all([sleep(ms, signal), typing]);
+    const speakTok = nova ? this.monitor.core.beginSpeak() : 0;
+    try {
+      const playing = buffer && this.canPlay() ? this.playBuffer(buffer, nova, signal) : null;
+      if (playing) {
+        await Promise.all([playing, typing]);
+      } else {
+        const ms = CONFIG.timing.noAudioBaseMs + line.text.length * CONFIG.timing.noAudioPerCharMs;
+        await Promise.all([sleep(ms, signal), typing]);
+      }
+    } finally {
+      if (nova) this.monitor.core.endSpeak(speakTok);
     }
   }
 
@@ -122,6 +127,12 @@ export class Dialogue {
       out.gain.value = 0.9;
       src.connect(hp).connect(lp).connect(ws).connect(out).connect(master);
       nodes.push(hp, lp, ws, out);
+      // Tap the Nova chain so the core visual can follow the voice.
+      const an = ctx.createAnalyser();
+      an.fftSize = 512;
+      out.connect(an);
+      nodes.push(an);
+      this.monitor.core.setAnalyser(an);
       staticSrc = this.audio.noiseSource();
       if (staticSrc) {
         const sg = ctx.createGain();

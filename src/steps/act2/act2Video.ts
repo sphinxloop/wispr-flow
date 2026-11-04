@@ -8,6 +8,7 @@ function prepare(g: Game) {
   screens.show('monitor');
   monitor.setLight('green');
   monitor.setPower(CONFIG.terminal.powerGranted);
+  monitor.applyStage('act2');
   g.inputLocked = true;
   return { effects, cinematic };
 }

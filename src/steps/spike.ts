@@ -10,12 +10,14 @@ export const spikeStep: Step = {
     const { monitor, effects } = g.ui;
     enterMonitor(g, 'amber-pulse');
     g.inputLocked = true;
+    monitor.applyStage('standby');
     g.sfx.screech();
     await sleep(400 + 500, g.signal); // squeal, then a beat of silence
 
     monitor.flashRed(true);
     monitor.clear();
     monitor.setLight('red');
+    monitor.applyStage('spike');
     g.state.rumble = g.sfx.rumble(120000);
     effects.shake(CONFIG.timing.shakeMs);
     effects.dust(4000);
@@ -25,6 +27,7 @@ export const spikeStep: Step = {
 
     monitor.flashRed(false);
     monitor.setLight('amber-pulse');
+    monitor.applyStage('listening');
     monitor.clear();
     await monitor.typeLines([CONFIG.screens.wakeHint], { className: 'faint' });
     g.goto('wake');

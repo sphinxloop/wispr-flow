@@ -9,6 +9,7 @@ export const wakeStep: Step = {
   async enter(g) {
     const { monitor } = g.ui;
     enterMonitor(g, 'amber-pulse');
+    monitor.applyStage('listening');
     if (!monitor.contains(CONFIG.screens.wakeHint)) {
       monitor.clear();
       await monitor.typeLines([CONFIG.screens.wakeHint], { className: 'faint' });
@@ -29,6 +30,7 @@ export const wakeStep: Step = {
     }
     g.sfx.risingTone();
     monitor.setLight('green');
+    monitor.applyStage('online');
     monitor.clear();
     await monitor.typeLines(CONFIG.screens.online, { className: 'success' });
     await g.dialogue.play(CONFIG.dialogue.novaWake, g.signal);

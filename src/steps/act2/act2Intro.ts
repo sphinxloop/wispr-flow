@@ -10,6 +10,7 @@ export const act2IntroStep: Step = {
     const { monitor, effects, cinematic } = g.ui;
     enterMonitor(g, 'green', true);
     g.inputLocked = true;
+    monitor.applyStage('act2');
     cinematic.preload([CONFIG.paths.act2aVideo, CONFIG.paths.act2bVideo]);
 
     await monitor.typeLines(CONFIG.act2.loading, { className: 'success' });

@@ -8,7 +8,12 @@ export const standbyStep: Step = {
     const { monitor } = g.ui;
     enterMonitor(g, 'amber-pulse');
     g.inputLocked = true;
+    monitor.applyStage('standby');
     monitor.clear();
+    if (!g.state.booted) {
+      g.state.booted = true;
+      await monitor.typeLines(CONFIG.terminal.boot, { className: 'faint', charMs: CONFIG.terminal.bootCharMs });
+    }
     await monitor.typeLines(CONFIG.screens.standby);
     await g.dialogue.play(CONFIG.dialogue.standby, g.signal);
     await monitor.typeLines([CONFIG.screens.standbyHint], { className: 'faint' });

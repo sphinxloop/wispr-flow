@@ -54,6 +54,8 @@ game.dialogue = dialogue;
 game.input = input;
 
 input.onSubmit = (raw, normalized) => game.voice(raw, normalized);
+input.onVoiceInsert = () => monitor.meter.burst();
+monitor.bindLock(() => game.inputLocked);
 artifacts.setHooks({
   play: (line, sig) => dialogue.play([line], sig),
   onSeen: (id) => game.state.artifactsSeen.add(id),

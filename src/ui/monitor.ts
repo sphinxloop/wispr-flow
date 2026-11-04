@@ -1,12 +1,42 @@
 import { CONFIG } from '../config';
 import { h, sleep } from '../core/util';
+import { NovaCore } from './novaCore';
+import { StatusPanel } from './statusPanel';
 
 export type LightMode = 'amber-pulse' | 'green' | 'off' | 'red';
 export interface TypeOpts { className?: 'faint' | 'alert' | 'success'; charMs?: number; signal?: AbortSignal }
 
+const BARS = 24;
+
+/** Tiny live level meter in the prompt bar: idles flat, bursts on a voice insert. */
+class LevelMeter {
+  readonly el: HTMLElement;
+  private bars: HTMLElement[] = [];
+  private burstUntil = 0;
+
+  constructor(parent: HTMLElement) {
+    this.el = h('div', 'term-meter', parent);
+    for (let i = 0; i < BARS; i++) this.bars.push(h('i', '', this.el));
+  }
+
+  burst(ms = 1000) { this.burstUntil = performance.now() + ms; }
+
+  tick(now: number) {
+    const left = this.burstUntil - now;
+    this.bars.forEach((b, i) => {
+      let v = 0.05 + Math.random() * 0.07;
+      if (left > 0) {
+        const env = Math.min(1, left / 400) * (0.45 + 0.55 * Math.sin((i / (BARS - 1)) * Math.PI));
+        v = 0.12 + Math.random() * 0.88 * env;
+      }
+      b.style.transform = `scaleY(${v.toFixed(2)})`;
+    });
+  }
+}
+
 /**
- * The full-screen CRT terminal: top bar (header, status light, power), the log,
- * a `mainExtra` slot for Act 2 panels, the evidence side panel and the prompt line.
+ * The full-screen CRT terminal: header strip, the Nova core, the log, a `mainExtra` slot for Act 2 panels,
+ * the right-hand evidence + status panel and the prompt bar.
  */
 export class Monitor {
   readonly root: HTMLElement;
@@ -15,48 +45,118 @@ export class Monitor {
   readonly evidenceList: HTMLElement;
   readonly promptRow: HTMLElement;
   readonly warnEl: HTMLElement;
+  readonly core: NovaCore;
+  readonly status: StatusPanel;
+  readonly meter: LevelMeter;
   private log: HTMLElement;
   private logInner: HTMLElement;
   private led: HTMLElement;
+  private ledLabel: HTMLElement;
   private power: HTMLElement;
+  private clockEl: HTMLElement;
+  private signalBars: HTMLElement[] = [];
+  private hintEl: HTMLElement;
+  private isLocked: () => boolean = () => false;
+  private clockBase = 0;
+  private clockT0 = Date.now();
   private glitchLine: HTMLElement;
   private glitchTimer = 0;
+  private lastSec = -1;
 
   constructor(parent: HTMLElement, private getSignal: () => AbortSignal) {
     const T = CONFIG.terminal;
+    const [hh, mm, ss] = T.clockStart.split(':').map(Number);
+    this.clockBase = hh * 3600 + mm * 60 + ss;
     this.root = h('div', 'term', parent);
 
+    // header strip
     const top = h('div', 'term-top', this.root);
-    h('div', 'term-header', top).textContent = T.header;
+    const head = h('div', 'term-header', top);
+    h('span', 'term-glyph', head).textContent = T.headerGlyph;
+    h('span', '', head).textContent = T.header;
+    this.clockEl = h('div', 'term-clock', top);
     const status = h('div', 'term-status', top);
+    const sig = h('span', 'term-signal', status);
+    for (let i = 0; i < 5; i++) this.signalBars.push(h('i', '', sig));
     this.led = h('span', 'led off', status);
+    this.ledLabel = h('span', 'term-ledlabel', status);
     this.power = h('span', 'term-power', status);
     this.power.textContent = T.power;
 
     const main = h('div', 'term-main', this.root);
-    const center = h('div', 'term-center', main);
-    this.log = h('div', 'term-log', center);
-    this.logInner = h('div', 'term-log-inner', this.log);
-    this.mainExtra = h('div', 'term-extra', center);
+    // left zone: the Nova core (or the Act 2 panels in its place)
+    const stage = h('div', 'term-stage', main);
+    this.core = new NovaCore(stage);
+    this.mainExtra = h('div', 'term-extra', stage);
 
-    this.evidencePanel = h('aside', 'term-evidence hidden', main);
-    h('div', 'term-evidence-title', this.evidencePanel).textContent = T.evidenceTitle;
+    // log column
+    const logCol = h('section', 'term-logcol', main);
+    h('div', 'panel-title', logCol).textContent = T.logTitle;
+    this.log = h('div', 'term-log', logCol);
+    this.logInner = h('div', 'term-log-inner', this.log);
+
+    // right column: evidence tiles (when unlocked) above the system status rows
+    const side = h('div', 'term-side', main);
+    this.evidencePanel = h('aside', 'term-evidence hidden', side);
+    h('div', 'panel-title', this.evidencePanel).textContent = T.evidenceTitle;
     this.evidenceList = h('div', 'term-evidence-list', this.evidencePanel);
+    this.status = new StatusPanel(side);
 
     const bottom = h('div', 'term-bottom', this.root);
     this.warnEl = h('div', 'term-warn', bottom);
     this.promptRow = h('div', 'term-prompt', bottom);
     h('span', 'term-prompt-label', this.promptRow).textContent = T.promptLabel;
-    // The voice input is appended here by VoiceInput, then the hint (CSS order).
-    h('span', 'term-prompt-hint', this.promptRow).textContent = T.promptHint;
+    // The voice input is appended here by VoiceInput; CSS order places meter + hint after it.
+    this.meter = new LevelMeter(this.promptRow);
+    this.hintEl = h('span', 'term-prompt-hint', this.promptRow);
+    this.hintEl.textContent = T.promptHint;
 
     h('div', 'term-flicker', this.root);
     h('div', 'term-scan', this.root);
+    h('div', 'term-roll', this.root);
+    h('div', 'term-grain', this.root);
     this.glitchLine = h('div', 'term-glitchline', this.root);
     h('div', 'term-vignette', this.root);
+    for (const c of ['tl', 'tr', 'bl', 'br']) h('div', 'term-corner ' + c, this.root);
     this.glitchLine.addEventListener('animationend', () => this.glitchLine.classList.remove('go'));
     this.scheduleGlitchLine();
+    this.setLight('off');
+    this.paintClock();
+    window.setInterval(() => this.tick(), 60);
   }
+
+  /** Give the prompt bar access to the input lock (for the "NOVA TRANSMITTING" label). */
+  bindLock(fn: () => boolean) { this.isLocked = fn; }
+
+  private clockText(withSeconds: boolean): string {
+    const t = (this.clockBase + Math.floor((Date.now() - this.clockT0) / 1000)) % 86400;
+    const p = (n: number) => String(n).padStart(2, '0');
+    const hms = [Math.floor(t / 3600), Math.floor((t % 3600) / 60), t % 60].map(p);
+    return withSeconds ? hms.join(':') : hms[0] + ':' + hms[1];
+  }
+
+  private paintClock() {
+    const [hh, mm] = this.clockText(false).split(':');
+    this.clockEl.innerHTML = `${CONFIG.terminal.dateShort} · ${hh}<span class="colon">:</span>${mm}`;
+  }
+
+  /** ~16fps: meter bars, signal bars and (each second) the clock. Idle when the terminal is not on screen. */
+  private tick() {
+    if (document.hidden || !this.root.offsetParent) return;
+    const now = performance.now();
+    this.meter.tick(now);
+    const locked = this.isLocked();
+    this.promptRow.classList.toggle('locked', locked);
+    const hint = locked ? CONFIG.terminal.promptTransmitting : CONFIG.terminal.promptHint;
+    if (this.hintEl.textContent !== hint) this.hintEl.textContent = hint;
+    if (Math.floor(now / 260) !== this.lastSec) {
+      this.lastSec = Math.floor(now / 260);
+      this.signalBars.forEach((b) => { b.style.transform = `scaleY(${(0.2 + Math.random() * 0.8).toFixed(2)})`; });
+    }
+    const sec = Math.floor((Date.now() - this.clockT0) / 1000);
+    if (sec !== this.lastClockSec) { this.lastClockSec = sec; this.paintClock(); }
+  }
+  private lastClockSec = -1;
 
   /** One timer: a bright band sweeps down the screen at random intervals. */
   private scheduleGlitchLine() {
@@ -80,7 +180,8 @@ export class Monitor {
   /** Append one finished line (also used to silently log Nova during video scenes). */
   appendLine(text: string, className?: string): HTMLElement {
     const d = h('div', 'line' + (className ? ' ' + className : ''), this.logInner);
-    d.textContent = text;
+    h('span', 'ts', d).textContent = this.clockText(true);
+    h('span', 'tx', d).textContent = text;
     while (this.logInner.children.length > CONFIG.terminal.maxLogLines) this.logInner.firstElementChild?.remove();
     this.scroll();
     return d;
@@ -102,8 +203,9 @@ export class Monitor {
     const signal = opts.signal ?? this.getSignal();
     const ms = opts.charMs ?? CONFIG.timing.typewriterCharMs;
     for (const full of lines) {
-      const el = this.appendLine('', opts.className);
-      el.classList.add('typing');
+      const line = this.appendLine('', opts.className);
+      const el = line.querySelector('.tx') as HTMLElement;
+      line.classList.add('typing');
       try {
         for (let i = 1; i <= full.length; i++) {
           el.textContent = full.slice(0, i);
@@ -111,7 +213,7 @@ export class Monitor {
           await sleep(ms, signal);
         }
       } finally {
-        el.classList.remove('typing');
+        line.classList.remove('typing');
       }
       await sleep(Math.max(60, ms * 4), signal);
     }
@@ -122,6 +224,14 @@ export class Monitor {
   setDim(level: number) { this.root.style.setProperty('--dim', String(level)); }
   setPower(text: string) { this.power.textContent = text; }
 
+  /** Core state + status rows for a key moment (see CONFIG.terminal.stages). */
+  applyStage(name: string) {
+    const st = CONFIG.terminal.stages[name];
+    if (!st) return;
+    this.core.setState(st.core);
+    this.status.apply(st);
+  }
+
   /** Back to the plain look (used when entering a step by debug jump). */
   resetMode() {
     this.flashRed(false);
@@ -129,5 +239,8 @@ export class Monitor {
     this.setDim(1);
   }
 
-  setLight(mode: LightMode) { this.led.className = 'led ' + mode; }
+  setLight(mode: LightMode) {
+    this.led.className = 'led ' + mode;
+    this.ledLabel.textContent = CONFIG.terminal.lightLabels[mode] ?? '';
+  }
 }
