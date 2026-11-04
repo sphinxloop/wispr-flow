@@ -1,30 +1,14 @@
-import { CONFIG } from '../config';
-import type { Rect } from '../config';
 import type { Game } from '../core/stateMachine';
-import { h, place } from '../core/util';
+import { h } from '../core/util';
 
-/** Dev overlay: shows hotspot/text/input rects and lets you jump to any step. */
+/** Dev overlay: outlines the terminal regions and lets you jump to any step. */
 export class Debug {
-  private boxes: HTMLElement;
   private panel: HTMLElement;
   private label: HTMLElement;
   private list: HTMLElement;
   private on = false;
 
-  constructor(private game: Game, private stage: HTMLElement, app: HTMLElement) {
-    this.boxes = h('div', 'debug-boxes', stage);
-    const add = (name: string, r: Rect) => {
-      const b = h('div', 'debug-box', this.boxes);
-      place(b, r);
-      b.dataset.label = name;
-    };
-    const L = CONFIG.layout;
-    add('screenText', L.screenText);
-    add('voiceInput', L.voiceInput);
-    const s = L.statusLight;
-    add('statusLight', { left: s.left, top: s.top, width: s.size, height: s.size * (16 / 9) });
-    (Object.keys(L.artifacts) as Array<keyof typeof L.artifacts>).forEach((k) => add(k, L.artifacts[k]));
-
+  constructor(private game: Game, private root: HTMLElement, app: HTMLElement) {
     this.panel = h('div', 'debug-panel', app);
     this.label = h('div', 'debug-current', this.panel);
     this.list = h('div', 'debug-steps', this.panel);
@@ -43,7 +27,7 @@ export class Debug {
 
   toggle(force?: boolean) {
     this.on = force ?? !this.on;
-    this.stage.classList.toggle('debug-on', this.on);
+    this.root.classList.toggle('debug-on', this.on);
     this.panel.classList.toggle('on', this.on);
     this.refresh();
   }

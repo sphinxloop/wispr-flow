@@ -7,6 +7,11 @@ import { abortError, sleep } from './util';
 
 const LOAD_TIMEOUT_MS = 2500;
 
+export interface PlayOpts {
+  /** false: Nova's text is appended to the log instantly instead of typed (video scenes). */
+  typeOnTerminal?: boolean;
+}
+
 function distortionCurve(amount: number): Float32Array<ArrayBuffer> {
   const n = 1024;
   const curve = new Float32Array(n);
@@ -17,21 +22,21 @@ function distortionCurve(amount: number): Float32Array<ArrayBuffer> {
   return curve;
 }
 
-/** Plays dialogue lines: audio if present, subtitles always. Never throws on missing audio. */
+/** Plays dialogue lines: audio if present, otherwise a timed wait (subtitles only if enabled). Never throws on missing audio. */
 export class Dialogue {
   private cache = new Map<string, AudioBuffer | null>(); // null = missing
 
   constructor(private audio: AudioEngine, private subtitles: Subtitles, private monitor: Monitor) {}
 
   /** Plays lines in order. Rejects with AbortError if the signal fires (after cleaning up). */
-  async play(lines: Line[], signal: AbortSignal): Promise<void> {
+  async play(lines: Line[], signal: AbortSignal, opts: PlayOpts = {}): Promise<void> {
     // Hide synchronously on abort so a follow-up line is never wiped by a late cleanup.
     const onAbort = () => this.subtitles.hide();
     signal.addEventListener('abort', onAbort, { once: true });
     try {
       for (const line of lines) {
         if (signal.aborted) throw abortError();
-        await this.playLine(line, signal);
+        await this.playLine(line, signal, opts.typeOnTerminal !== false);
         await sleep(CONFIG.timing.lineGapMs, signal);
       }
     } finally {
@@ -40,15 +45,18 @@ export class Dialogue {
     }
   }
 
-  private async playLine(line: Line, signal: AbortSignal): Promise<void> {
+  private async playLine(line: Line, signal: AbortSignal, typeOnTerminal: boolean): Promise<void> {
     const buffer = await this.load(line.id, signal);
     if (signal.aborted) throw abortError();
 
     const nova = line.speaker === 'nova';
     this.subtitles.show(line.text, line.speaker);
-    const typing = nova
-      ? this.monitor.typeLines([CONFIG.screens.novaPrefix + line.text], { signal })
-      : Promise.resolve();
+    let typing: Promise<void> = Promise.resolve();
+    if (nova) {
+      const full = CONFIG.screens.novaPrefix + line.text;
+      if (typeOnTerminal) typing = this.monitor.typeLines([full], { signal });
+      else this.monitor.appendLine(full);
+    }
     typing.catch(() => {});
 
     const playing = buffer && this.canPlay() ? this.playBuffer(buffer, nova, signal) : null;

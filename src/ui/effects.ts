@@ -10,7 +10,7 @@ export class Effects {
   }
 
   /** Jitter the stage; intensity decays to zero. */
-  shake(ms: number) {
+  shake(ms: number, amp = 1) {
     const signal = this.getSignal();
     const start = performance.now();
     const w = this.stage.clientWidth;
@@ -18,7 +18,7 @@ export class Effects {
     const tick = (now: number) => {
       const t = (now - start) / ms;
       if (t >= 1 || signal.aborted) return reset();
-      const k = (1 - t) * w * 0.008;
+      const k = (1 - t) * w * 0.008 * amp;
       this.stage.style.transform = `translate(${(Math.random() - 0.5) * 2 * k}px, ${(Math.random() - 0.5) * 2 * k}px) rotate(${(Math.random() - 0.5) * 0.004 * (1 - t)}rad)`;
       requestAnimationFrame(tick);
     };
@@ -76,6 +76,28 @@ export class Effects {
     f.style.transition = `opacity ${ms}ms ease-out`;
     requestAnimationFrame(() => requestAnimationFrame(() => { f.style.opacity = '0'; }));
     setTimeout(() => f.remove(), ms + 100);
+  }
+
+  /** RGB-split / jitter / scanline-tear on the terminal for `ms`. Always cleans up. */
+  glitchOut(ms: number): Promise<void> {
+    const signal = this.getSignal();
+    const el = this.stage;
+    el.style.setProperty('--glitch-ms', ms + 'ms');
+    el.classList.add('glitch-out');
+    const p = new Promise<void>((resolve, reject) => {
+      const done = () => { clearTimeout(t); el.classList.remove('glitch-out'); };
+      const t = setTimeout(() => { done(); resolve(); }, ms);
+      signal.addEventListener('abort', () => { done(); reject(new DOMException('Aborted', 'AbortError')); }, { once: true });
+    });
+    p.catch(() => {});
+    return p;
+  }
+
+  /** Instant cut to black. */
+  cutToBlack() {
+    this.black.style.transition = 'none';
+    this.black.style.opacity = '1';
+    this.isBlack = true;
   }
 
   private fade(toBlack: boolean, ms: number): Promise<void> {

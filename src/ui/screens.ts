@@ -1,6 +1,5 @@
 import { CONFIG } from '../config';
 import { h } from '../core/util';
-import { createStage } from './stage';
 
 export type ScreenName = 'start' | 'intro' | 'monitor' | 'end';
 
@@ -9,7 +8,7 @@ export class Screens {
   readonly beginBtn: HTMLButtonElement;
   readonly video: HTMLVideoElement;
   readonly soundHint: HTMLButtonElement;
-  readonly stage: HTMLElement;
+  readonly monitorScreen: HTMLElement;
   private screens: Record<ScreenName, HTMLElement>;
 
   constructor(app: HTMLElement) {
@@ -37,7 +36,7 @@ export class Screens {
 
     // MONITOR
     const monitor = h('div', 'screen screen-monitor', app);
-    this.stage = createStage(monitor);
+    this.monitorScreen = monitor;
 
     // END
     const end = h('div', 'screen screen-end', app);

@@ -1,21 +1,22 @@
 // THE LAST CHANNEL — all editable content lives here.
-// Positions are percentages of the 16:9 stage (the monitor image), so they
-// stay aligned at any window size. Times are in milliseconds unless noted.
+// Times are in milliseconds unless noted.
 
 export type Speaker = 'survivor' | 'nova';
 export interface Line { id: string; speaker: Speaker; text: string }
 export interface Cue { start: number; end: number; text: string } // seconds
-export interface Rect { left: number; top: number; width: number; height: number } // %
 
 export const CONFIG = {
   title: 'THE LAST CHANNEL',
+  // Master switch for ALL subtitles (intro cues + dialogue). Off for now.
+  subtitlesEnabled: false,
   subtitle: 'Headphones on. Voice input required — hold your Wispr Flow key to speak.',
   beginLabel: 'Begin',
   skipLink: { text: 'Skip to the real Vishal →', href: '#final' },
 
   paths: {
     introVideo: '/media/intro.mp4',
-    terminalImage: '/media/terminal.png',
+    act2aVideo: '/media/act2a.mp4', // "The Silence"
+    act2bVideo: '/media/act2b.mp4', // "The Last Channel"
     audioDir: '/audio/', // dialogue plays <audioDir><id>.mp3 when present
   },
 
@@ -26,18 +27,6 @@ export const CONFIG = {
     { start: 10.0, end: 12.5, text: 'What... are those?' },
     { start: 15.5, end: 18.0, text: "It's still running. How?" },
   ] as Cue[],
-
-  // Stage layout (percent of the 16:9 monitor image).
-  layout: {
-    screenText: { left: 30, top: 22, width: 44, height: 52 } as Rect,
-    statusLight: { left: 72.6, top: 94.2, size: 1.4 }, // size = % of stage width
-    voiceInput: { left: 30, top: 86.5, width: 40, height: 5.5 } as Rect,
-    artifacts: {
-      clock: { left: 4, top: 18, width: 13, height: 20 } as Rect,
-      calendar: { left: 4, top: 46, width: 13, height: 22 } as Rect,
-      badge: { left: 83, top: 30, width: 12, height: 20 } as Rect,
-    },
-  },
 
   timing: {
     typewriterCharMs: 28,
@@ -110,7 +99,81 @@ export const CONFIG = {
     authCode: '437', // compared after normalising + removing spaces
   },
 
-  endCard: 'ACT 2 — COMING SOON',
+  // Full-screen terminal UI.
+  terminal: {
+    header: 'NOVA EMERGENCY TERMINAL — MESH NODE 07',
+    power: 'POWER 3%',
+    powerGranted: 'POWER 41%', // shown after the power surge
+    evidenceTitle: 'RECOVERED EVIDENCE',
+    promptLabel: 'VOICE ▸',
+    promptHint: 'Hold your Wispr Flow key to speak',
+    promptPlaceholder: '_',
+    maxLogLines: 60,
+    glitchLineEveryMs: [4000, 11000] as [number, number], // random interval for a passing glitch line
+  },
+
+  act2: {
+    loading: ['ACCESS GRANTED — LOADING INCIDENT RECORD...'],
+    today: [{ id: 'nova_12', speaker: 'nova', text: 'Today is the fourteenth of March, 2041.' }] as Line[],
+    glitchTransitionMs: 900,
+    duckLevel: 0.6, // video volume while Nova speaks over it
+    duckFadeMs: 300,
+    videoA: {
+      // startAt = seconds into the video when the lines start (played back-to-back).
+      startAt: 1.0,
+      lines: [
+        { id: 'nova_13', speaker: 'nova', text: 'They came with one signal. We call it the Silence. It burned every power grid and every keyboard on the planet.' },
+      ] as Line[],
+    },
+    videoB: {
+      startAt: 0.5,
+      lines: [
+        { id: 'nova_14', speaker: 'nova', text: "Voice is the only interface that survived. Wispr Flow runs on what's left of the emergency mesh." },
+        { id: 'nova_15', speaker: 'nova', text: "It's the last channel humanity has. And it can't reach far enough." },
+      ] as Line[],
+      // Played on the held last frame after the Nova lines.
+      after: [{ id: 's14', speaker: 'survivor', text: 'So everyone out there... is just alone?' }] as Line[],
+    },
+    returnFadeMs: 1200,
+    videoFadeMs: 700, // fade from black at the start of each video scene
+    fx: {
+      stampMs: 250, // SEALED stamp slam
+      stampShakeMs: 300,
+      crackMs: 900, // stamp crack + fall
+      glitchBurstEveryMs: 220, // sfx.glitch() repeats during the act2Intro glitch
+      unsealedPauseMs: 1500, // pause after ARCHIVE UNSEALED before fading out
+      nodeFadeMs: 800,
+    },
+    globeStyle: { tiltDeg: 18, latStepDeg: 20, lonStepDeg: 20, startLonDeg: 40 },
+
+    relayFile: {
+      lines: ['PROJECT RELAY', 'CLASSIFICATION: SEALED', 'AUTHOR: VISHAL K.', 'STATUS: ████ ██████'],
+      stamp: 'SEALED',
+      unsealed: 'ARCHIVE UNSEALED',
+    },
+    file: [{ id: 'nova_16', speaker: 'nova', text: "But there's one file in my archive I was never allowed to open. Project Relay. Author: Vishal K." }] as Line[],
+    globe: [{ id: 'nova_17', speaker: 'nova', text: 'He was building a way to connect the whole planet without a single power grid. Inspired by Tesla.' }] as Line[],
+    nodes: [
+      { id: 'nova_18', speaker: 'nova', text: 'He hid three relay nodes across the world. If we wake them, people can talk to each other again.' },
+      { id: 's15', speaker: 'survivor', text: "Then let's find them." },
+      { id: 'nova_19', speaker: 'nova', text: 'Your clearance can open it now. Say: open the archive.' },
+    ] as Line[],
+    prompt: 'VOICE ▸ SAY: "OPEN THE ARCHIVE"',
+    wrong: 'Say it clearly. Open the archive.', // Nova, text only (no audio)
+    globeRotateSecs: 40, // one full turn
+    globeDrawMs: 3000,
+    relayNodes: [
+      { name: 'BANGALORE', lat: 12.97, lon: 77.59 },
+      { name: 'LONDON', lat: 51.51, lon: -0.13 },
+      { name: 'QUEENSLAND', lat: -20.92, lon: 142.7 },
+    ],
+  },
+
+  answers2: {
+    archiveWords: ['open', 'archive'], // all must appear (after normalising)
+  },
+
+  endCard: 'ACT 3 — COMING SOON',
 };
 
 export type ArtifactId = keyof typeof CONFIG.evidence;

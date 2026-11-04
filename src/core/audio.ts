@@ -6,7 +6,7 @@ export class AudioEngine {
   ctx: AudioContext | null = null;
   master: GainNode | null = null;
   muted = false;
-  private video: HTMLVideoElement | null = null;
+  private videos: HTMLVideoElement[] = [];
   private noise: AudioBuffer | null = null;
   private listeners: Array<(muted: boolean) => void> = [];
 
@@ -24,13 +24,13 @@ export class AudioEngine {
     return this.ctx;
   }
 
-  setVideo(v: HTMLVideoElement) { this.video = v; }
+  addVideo(v: HTMLVideoElement) { this.videos.push(v); }
   onMute(fn: (muted: boolean) => void) { this.listeners.push(fn); }
 
   toggleMute(): boolean {
     this.muted = !this.muted;
     if (this.master) this.master.gain.value = this.muted ? 0 : 1;
-    if (this.video) this.video.muted = this.muted;
+    this.videos.forEach((v) => { v.muted = this.muted; });
     this.listeners.forEach((f) => f(this.muted));
     return this.muted;
   }
@@ -246,6 +246,93 @@ export class Sfx {
     th.connect(tg).connect(this.a.master);
     th.start(t);
     th.stop(t + 1.9);
+  }
+
+  /** Short low thud for the SEALED stamp. */
+  stamp(): void {
+    const ctx = this.a.ensure();
+    if (!ctx || !this.a.master) return;
+    const t = ctx.currentTime;
+    const o = ctx.createOscillator();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(120, t);
+    o.frequency.exponentialRampToValueAtTime(38, t + 0.2);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.7, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+    o.connect(g).connect(this.a.master);
+    o.start(t);
+    o.stop(t + 0.35);
+    const n = this.a.noiseSource();
+    if (n) {
+      const lp = ctx.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.frequency.value = 400;
+      const ng = ctx.createGain();
+      ng.gain.setValueAtTime(0.35, t);
+      ng.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+      n.connect(lp).connect(ng).connect(this.a.master);
+      n.start(t);
+      n.stop(t + 0.15);
+    }
+  }
+
+  /** Heavy mechanical unlock: low thunk, metallic clank, then a hiss. */
+  unlock(): void {
+    const ctx = this.a.ensure();
+    if (!ctx || !this.a.master) return;
+    const t = ctx.currentTime;
+    const master = this.a.master;
+    // thunk
+    const th = ctx.createOscillator();
+    th.type = 'sine';
+    th.frequency.setValueAtTime(95, t);
+    th.frequency.exponentialRampToValueAtTime(40, t + 0.3);
+    const tg = ctx.createGain();
+    tg.gain.setValueAtTime(0.8, t);
+    tg.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+    th.connect(tg).connect(master);
+    th.start(t);
+    th.stop(t + 0.45);
+    // clank: filtered noise burst + resonant ~120Hz sine
+    const clankAt = t + 0.12;
+    const n = this.a.noiseSource();
+    if (n) {
+      const bp = ctx.createBiquadFilter();
+      bp.type = 'bandpass';
+      bp.frequency.value = 2400;
+      bp.Q.value = 7;
+      const ng = ctx.createGain();
+      ng.gain.setValueAtTime(0.55, clankAt);
+      ng.gain.exponentialRampToValueAtTime(0.001, clankAt + 0.18);
+      n.connect(bp).connect(ng).connect(master);
+      n.start(clankAt);
+      n.stop(clankAt + 0.22);
+    }
+    const ring = ctx.createOscillator();
+    ring.type = 'sine';
+    ring.frequency.value = 120;
+    const rg = ctx.createGain();
+    rg.gain.setValueAtTime(0.5, clankAt);
+    rg.gain.exponentialRampToValueAtTime(0.001, clankAt + 0.7);
+    ring.connect(rg).connect(master);
+    ring.start(clankAt);
+    ring.stop(clankAt + 0.75);
+    // hiss
+    const hissAt = t + 0.35;
+    const hn = this.a.noiseSource();
+    if (hn) {
+      const hp = ctx.createBiquadFilter();
+      hp.type = 'highpass';
+      hp.frequency.value = 3500;
+      const hg = ctx.createGain();
+      hg.gain.setValueAtTime(0.0001, hissAt);
+      hg.gain.linearRampToValueAtTime(0.14, hissAt + 0.15);
+      hg.gain.exponentialRampToValueAtTime(0.001, hissAt + 0.9);
+      hn.connect(hp).connect(hg).connect(master);
+      hn.start(hissAt);
+      hn.stop(hissAt + 0.95);
+    }
   }
 
   /** Filtered noise whir that spins up and then loops softly. */

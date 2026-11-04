@@ -1,6 +1,6 @@
 import { CONFIG } from '../config';
 import type { ArtifactId, Line } from '../config';
-import { h, place } from '../core/util';
+import { h } from '../core/util';
 import { ART } from './evidenceArt';
 
 const ICONS: Record<ArtifactId, string> = {
@@ -15,37 +15,36 @@ export interface ArtifactHooks {
   onClose: () => void; // refocus the voice input
 }
 
-/** Clickable evidence hotspots on the monitor + full-screen close-ups. */
+/** Evidence tiles in the terminal's side panel + full-screen close-ups. */
 export class Artifacts {
-  private spots = new Map<ArtifactId, HTMLButtonElement>();
+  private tiles = new Map<ArtifactId, HTMLButtonElement>();
   private overlay: HTMLElement | null = null;
   private ctl: AbortController | null = null;
   private hooks!: ArtifactHooks;
 
-  constructor(private stage: HTMLElement, private app: HTMLElement) {
+  constructor(private panel: HTMLElement, list: HTMLElement, private app: HTMLElement) {
     (Object.keys(CONFIG.evidence) as ArtifactId[]).forEach((id) => {
-      const b = h('button', 'hotspot hidden', stage);
+      const b = h('button', 'tile', list);
       b.dataset.nofocus = '1';
       b.dataset.id = id;
-      place(b, CONFIG.layout.artifacts[id]);
       b.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[id]}</svg><span>${CONFIG.evidence[id].label}</span>`;
       b.addEventListener('click', () => this.open(id));
-      this.spots.set(id, b);
+      this.tiles.set(id, b);
     });
   }
 
   setHooks(hooks: ArtifactHooks) { this.hooks = hooks; }
 
-  show() { this.spots.forEach((b) => b.classList.remove('hidden')); }
+  show() { this.panel.classList.remove('hidden'); }
 
-  /** Hide hotspots and close any open close-up. */
+  /** Hide the evidence panel and close any open close-up. */
   hide() {
-    this.spots.forEach((b) => b.classList.add('hidden'));
+    this.panel.classList.add('hidden');
     this.closeUp();
   }
 
   setIntensity(level: 'normal' | 'bright') {
-    this.spots.forEach((b) => { b.dataset.intensity = level; });
+    this.tiles.forEach((b) => { b.dataset.intensity = level; });
   }
 
   get isOpen() { return !!this.overlay; }

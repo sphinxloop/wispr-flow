@@ -1,5 +1,3 @@
-import type { Rect } from '../config';
-
 export const abortError = () => new DOMException('Aborted', 'AbortError');
 export const isAbort = (e: unknown) => e instanceof DOMException && e.name === 'AbortError';
 
@@ -19,14 +17,6 @@ export function sleep(ms: number, signal: AbortSignal): Promise<void> {
   });
   p.catch(() => {}); // never an "unhandled" rejection if the caller doesn't await
   return p;
-}
-
-/** Position an element by a percent rect. */
-export function place(el: HTMLElement, r: Rect): void {
-  el.style.left = r.left + '%';
-  el.style.top = r.top + '%';
-  el.style.width = r.width + '%';
-  el.style.height = r.height + '%';
 }
 
 export function h<K extends keyof HTMLElementTagNameMap>(

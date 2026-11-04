@@ -1,5 +1,5 @@
 import { CONFIG } from '../config';
-import { h, isCoarse, place } from './util';
+import { h, isCoarse } from './util';
 import { normalize } from './normalize';
 import type { Sfx } from './audio';
 
@@ -9,7 +9,6 @@ import type { Sfx } from './audio';
  */
 export class VoiceInput {
   readonly el: HTMLInputElement;
-  private warn: HTMLElement;
   private prevLen = 0;
   private submitTimer = 0;
   private warnTimer = 0;
@@ -17,18 +16,15 @@ export class VoiceInput {
   private coarse = isCoarse();
   onSubmit: (raw: string, normalized: string) => void = () => {};
 
-  constructor(stage: HTMLElement, private sfx: Sfx, private isLocked: () => boolean) {
-    this.el = h('input', 'voice-input', stage);
+  constructor(prompt: HTMLElement, private warn: HTMLElement, private sfx: Sfx, private isLocked: () => boolean) {
+    this.el = h('input', 'voice-input', prompt);
     this.el.type = 'text';
-    this.el.placeholder = '● listening — hold your Wispr Flow key';
+    this.el.placeholder = CONFIG.terminal.promptPlaceholder;
     this.el.autocomplete = 'off';
     this.el.autocapitalize = 'off';
     this.el.spellcheck = false;
     this.el.setAttribute('aria-label', 'Voice input');
     this.el.setAttribute('autocorrect', 'off');
-    place(this.el, CONFIG.layout.voiceInput);
-    this.warn = h('div', 'voice-warn', stage);
-    place(this.warn, { ...CONFIG.layout.voiceInput, top: CONFIG.layout.voiceInput.top - 7, height: 6 });
 
     this.el.addEventListener('input', () => this.onInput());
     this.el.addEventListener('keydown', (e) => {
@@ -41,7 +37,7 @@ export class VoiceInput {
       if (!this.active) return;
       const t = e.target as HTMLElement;
       if (t.closest('[data-nofocus]')) return;
-      if (this.coarse && !t.closest('.stage')) return;
+      if (this.coarse && !t.closest('.term')) return;
       this.focus();
     });
   }

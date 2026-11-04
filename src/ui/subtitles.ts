@@ -1,7 +1,8 @@
+import { CONFIG } from '../config';
 import type { Speaker } from '../config';
 import { h } from '../core/util';
 
-/** Bottom-center subtitle bar, fixed to the viewport. */
+/** Bottom-center subtitle bar, fixed to the viewport. Silent unless CONFIG.subtitlesEnabled. */
 export class Subtitles {
   private bar: HTMLElement;
   private text: HTMLElement;
@@ -13,6 +14,7 @@ export class Subtitles {
   }
 
   show(text: string, speaker: Speaker = 'survivor') {
+    if (!CONFIG.subtitlesEnabled) return;
     const key = speaker + text;
     if (key === this.current) return;
     this.current = key;

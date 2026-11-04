@@ -7,15 +7,18 @@ import type { Monitor } from '../ui/monitor';
 import type { Effects } from '../ui/effects';
 import type { Artifacts } from '../ui/artifacts';
 import type { Subtitles } from '../ui/subtitles';
+import type { Cinematic } from '../ui/cinematic';
+import type { RelayPanel } from '../ui/relayPanel';
 import { isAbort } from './util';
 
 export interface UI {
   screens: Screens;
-  stage: HTMLElement;
   monitor: Monitor;
   effects: Effects;
   artifacts: Artifacts;
   subtitles: Subtitles;
+  cinematic: Cinematic;
+  relay: RelayPanel;
 }
 
 /** Shared mutable game state. Later acts add fields here. */
@@ -43,6 +46,10 @@ export interface Step {
   onVoice?(text: string, normalized: string, g: Game): void | Promise<void>;
   /** Keep the rumble loop running when entering this step. */
   keepAmbient?: boolean;
+  /** Keep the fans running when entering this step (they fade out on the next step). */
+  keepFans?: boolean;
+  /** Keep the Act 2 file panel + globe when entering this step. */
+  keepExtra?: boolean;
 }
 
 export interface StepContext { game: Game }
@@ -85,8 +92,11 @@ export class Game {
       this.state.rumble?.stop();
       this.state.rumble = null;
     }
-    this.state.fans?.fadeOut(1200);
-    this.state.fans = null;
+    if (!step.keepFans) {
+      this.state.fans?.fadeOut(1200);
+      this.state.fans = null;
+    }
+    if (!step.keepExtra) this.ui.relay.reset();
 
     this.current = id;
     this.inputLocked = false;

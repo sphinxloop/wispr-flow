@@ -10,6 +10,8 @@ import { Monitor } from './ui/monitor';
 import { Effects } from './ui/effects';
 import { Artifacts } from './ui/artifacts';
 import { Subtitles } from './ui/subtitles';
+import { Cinematic } from './ui/cinematic';
+import { RelayPanel } from './ui/relayPanel';
 import { Debug } from './ui/debug';
 import { startStep } from './steps/start';
 import { introStep } from './steps/intro';
@@ -18,6 +20,10 @@ import { spikeStep } from './steps/spike';
 import { wakeStep } from './steps/wake';
 import { evidenceStep } from './steps/evidence';
 import { grantedStep } from './steps/granted';
+import { act2IntroStep } from './steps/act2/act2Intro';
+import { act2Video1Step, act2Video2Step } from './steps/act2/act2Video';
+import { relayStep } from './steps/act2/relay';
+import { archiveStep } from './steps/act2/archive';
 import { endStep } from './steps/end';
 
 // Aborted waits reject with AbortError by design; never surface them.
@@ -30,17 +36,18 @@ const signal = () => game.signal;
 const audio = new AudioEngine();
 const sfx = new Sfx(audio);
 const screens = new Screens(app);
-audio.setVideo(screens.video);
-const stage = screens.stage;
+audio.addVideo(screens.video);
 
-const monitor = new Monitor(stage, signal);
-const effects = new Effects(stage, app, signal);
-const artifacts = new Artifacts(stage, app);
+const monitor = new Monitor(screens.monitorScreen, signal);
+const effects = new Effects(monitor.root, app, signal);
+const artifacts = new Artifacts(monitor.evidencePanel, monitor.evidenceList, app);
 const subtitles = new Subtitles(app);
-const input = new VoiceInput(stage, sfx, () => game.inputLocked);
+const input = new VoiceInput(monitor.promptRow, monitor.warnEl, sfx, () => game.inputLocked);
 const dialogue = new Dialogue(audio, subtitles, monitor);
+const cinematic = new Cinematic(app, audio, dialogue);
+const relay = new RelayPanel(monitor);
 
-game.ui = { screens, stage, monitor, effects, artifacts, subtitles };
+game.ui = { screens, monitor, effects, artifacts, subtitles, cinematic, relay };
 game.audio = audio;
 game.sfx = sfx;
 game.dialogue = dialogue;
@@ -74,9 +81,10 @@ skip.href = CONFIG.skipLink.href; // #final: placeholder, the link just navigate
 hud.append(mute, skip);
 app.appendChild(hud);
 
-new Debug(game, stage, app);
+new Debug(game, monitor.root, app);
 
-[startStep, introStep, standbyStep, spikeStep, wakeStep, evidenceStep, grantedStep, endStep].forEach((s) =>
-  game.register(s),
-);
+[
+  startStep, introStep, standbyStep, spikeStep, wakeStep, evidenceStep, grantedStep,
+  act2IntroStep, act2Video1Step, act2Video2Step, relayStep, archiveStep, endStep,
+].forEach((s) => game.register(s));
 game.goto('start');

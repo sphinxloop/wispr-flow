@@ -10,13 +10,13 @@ export const grantedStep: Step = {
     g.inputLocked = true;
     g.ui.artifacts.hide();
     g.sfx.powerSurge();
+    monitor.setPower(CONFIG.terminal.powerGranted);
     g.state.fans = g.sfx.fans();
     monitor.brighten(true);
     effects.flash('#fff6d6', 700);
     monitor.clear();
     await monitor.typeLines(CONFIG.screens.granted, { className: 'success' });
     await g.dialogue.play(CONFIG.dialogue.granted, g.signal);
-    await effects.fadeToBlack(CONFIG.timing.endFadeMs);
-    g.goto('end');
+    g.goto('act2Intro'); // the terminal stays on screen; the fans keep running until the videos start
   },
 };
