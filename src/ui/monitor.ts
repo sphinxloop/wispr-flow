@@ -13,6 +13,7 @@ class LevelMeter {
   readonly el: HTMLElement;
   private bars: HTMLElement[] = [];
   private burstUntil = 0;
+  private external = false;
 
   constructor(parent: HTMLElement) {
     this.el = h('div', 'term-meter', parent);
@@ -21,7 +22,18 @@ class LevelMeter {
 
   burst(ms = 1000) { this.burstUntil = performance.now() + ms; }
 
+  /** Drive the bars from outside (0..1 per bar, any length); null hands control back to the idle animation. */
+  setLevels(levels: ArrayLike<number> | null) {
+    this.external = !!levels;
+    if (!levels) return;
+    this.bars.forEach((b, i) => {
+      const v = levels[Math.min(levels.length - 1, Math.floor((i / BARS) * levels.length))] ?? 0;
+      b.style.transform = `scaleY(${(0.06 + Math.min(1, v) * 0.94).toFixed(2)})`;
+    });
+  }
+
   tick(now: number) {
+    if (this.external) return;
     const left = this.burstUntil - now;
     this.bars.forEach((b, i) => {
       let v = 0.05 + Math.random() * 0.07;

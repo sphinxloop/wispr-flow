@@ -13,6 +13,8 @@ export const finalStep: Step = {
     g.inputLocked = true;
     g.input.setActive(false);
     (document.activeElement as HTMLElement | null)?.blur();
+    g.ui.effects.clearBlack();
+    getFinalScreen().attach(g);
     getFinalScreen().show(); // the overlay covers the terminal
   },
   exit() {

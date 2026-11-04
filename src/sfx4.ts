@@ -27,33 +27,25 @@ export function alarmBeep(a: AudioEngine): void {
   }
 }
 
-/** Very quiet typewriter tick. */
-export function letterTick(a: AudioEngine): void {
-  if (!a.ctx || !a.master || a.ctx.state !== 'running') return;
-  const t = a.ctx.currentTime;
-  tone(a, 'square', 1500 + Math.random() * 500, 900, t, 0.018, 0.012);
-}
-
-/** Rising whoosh + confirm blips. */
-export function sentWhoosh(a: AudioEngine): void {
+/** Light radio crackle: short high-passed noise with random pops. Returns a stop function. */
+export function radioCrackle(a: AudioEngine, ms: number, peak: number): void {
   if (!a.ensure() || !a.master) return;
   const ctx = a.ctx!;
-  const t = ctx.currentTime;
   const src = a.noiseSource();
-  if (src) {
-    const bp = ctx.createBiquadFilter();
-    bp.type = 'bandpass';
-    bp.Q.value = 2;
-    bp.frequency.setValueAtTime(300, t);
-    bp.frequency.exponentialRampToValueAtTime(3500, t + 0.7);
-    const g = ctx.createGain();
-    g.gain.setValueAtTime(0.0001, t);
-    g.gain.linearRampToValueAtTime(0.12, t + 0.3);
-    g.gain.linearRampToValueAtTime(0, t + 0.8);
-    src.connect(bp).connect(g).connect(a.master);
-    src.start(t);
-    src.stop(t + 0.85);
+  if (!src) return;
+  const t = ctx.currentTime;
+  const dur = ms / 1000;
+  const hp = ctx.createBiquadFilter();
+  hp.type = 'highpass';
+  hp.frequency.value = 1800;
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0, t);
+  for (let x = 0.02; x < dur; x += 0.03 + Math.random() * 0.05) {
+    const fade = 1 - x / dur;
+    g.gain.setValueAtTime(Math.random() < 0.55 ? peak * fade * (0.4 + Math.random()) : peak * 0.12 * fade, t + x);
   }
-  tone(a, 'sine', 660, 660, t + 0.6, 0.12, 0.08);
-  tone(a, 'sine', 990, 990, t + 0.74, 0.2, 0.08);
+  g.gain.setValueAtTime(0, t + dur);
+  src.connect(hp).connect(g).connect(a.master);
+  src.start(t, Math.random());
+  src.stop(t + dur + 0.02);
 }

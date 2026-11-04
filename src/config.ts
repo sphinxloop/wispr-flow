@@ -51,6 +51,8 @@ export const CONFIG = {
   },
 
   audio: {
+    voiceGain: 1.5, // Nova + survivor voice volume (1 = file level)
+    novaRadioFilter: false, // true = bandpass + light distortion on Nova's voice
     novaBandLowHz: 300,
     novaBandHighHz: 3000,
     novaDistortion: 12, // 0 = clean
@@ -171,6 +173,11 @@ export const CONFIG = {
       relay: {
         core: 'hidden',
         status: { nova: ['ONLINE', 'ok'], power: ['41%', 'ok'], mesh: ['0/3 LOCATED', 'warn', 'RELAY NODES'], threat: ['LISTENING', 'warn'] },
+      },
+      // Act 4: the network is live.
+      network: {
+        core: 'hidden',
+        status: { nova: ['ONLINE', 'ok'], power: ['41%', 'ok'], mesh: ['GLOBAL', 'ok', 'MESH LINK'], threat: ['LISTENING', 'warn'] },
       },
     } as Record<string, Stage>,
   },
@@ -407,30 +414,52 @@ export const CONFIG = {
     silenceMs: 2000,
     coming: [{ id: 'nova_37', speaker: 'nova', text: "...Wait. Something's coming through." }] as Line[],
     banner: '⚠ INCOMING TRANSMISSION — ORIGIN: VISHAL K. — STATUS: ALIVE',
+    bannerMs: 1300, // red alert + alarm duration before nova_38
     incoming: [{ id: 'nova_38', speaker: 'nova', text: 'Incoming transmission. Origin: Vishal K. Status... alive.' }] as Line[],
-    letterTitle: 'RECOVERED TRANSMISSION',
-    letter: '[PLACEHOLDER — I\'ll paste my message]',
-    letterCharMs: 28,
-    skipTypingLabel: 'Skip typing',
+
+    transmission: {
+      src: '/audio/transmission.mp3',
+      title: 'RECOVERED TRANSMISSION',
+      meterLabel: 'TRANSMISSION',
+      skipLabel: 'Skip ▸▸',
+      crackleMs: 1200, // light radio crackle at the start and at the end
+      crackleGain: 0.06,
+      fallbackDurationS: 68.6, // used to time the cues if the audio fails to load
+      endHoldMs: 1000, // pause after the audio ends, before nova_39
+      // Each cue starts typing at `t` (seconds into the audio) and finishes before the next one.
+      // style: 'list' = ONE/TWO/THREE highlight, 'hero' = larger and brighter, 'sign' = sign-off.
+      cues: [
+        { t: 0.0, text: "If you're hearing this... Relay worked." },
+        { t: 4.2, text: 'Which means someone found me. Good.' },
+        { t: 7.7, text: 'Okay. Stepping out of the game for a second.' },
+        { t: 11.0, text: "I'm Vishal. I've built AI products from scratch, run commercial operations in London, and grown a business in Bangalore." },
+        { t: 18.2, text: 'The last one I built was Rivl. It taught me the hard way that building the product is the easy part.' },
+        { t: 24.3, text: "Getting people to care... is the actual job. That's what I want to do at Wispr." },
+        { t: 29.5, text: "Here's what I'd start with in India." },
+        { t: 31.6, style: 'list', text: 'ONE — India talks in Hinglish. So lean into it. Show people Flow handling the way we actually speak.' },
+        { t: 38.7, style: 'list', text: "TWO — Founders and sales teams live on WhatsApp and LinkedIn. Turn them into Flow's loudest users." },
+        { t: 45.4, style: 'list', text: 'THREE — Campuses. Every hostel has someone typing a 3,000-word assignment at 2 a.m. They should be talking it out instead.' },
+        { t: 54.0, text: 'You just spent ten minutes talking to a computer to save the world. Imagine what we could do with a whole country.' },
+        { t: 61.0, style: 'hero', text: 'Wispr gave humanity its last channel. Let me help it reach everyone else.' },
+        { t: 66.8, style: 'sign', text: 'Over and out. — Vishal' },
+      ] as { t: number; text: string; style?: 'list' | 'hero' | 'sign' }[],
+      // Within a 'hero' cue, this part is shown larger and brighter.
+      heroPhrase: 'Let me help it reach everyone else.',
+    },
+
     ended: [{ id: 'nova_39', speaker: 'nova', text: 'Transmission ended. The channel is still open. Do you want to reply?' }] as Line[],
-    nameLabel: 'Your name (optional — you can type this one)',
-    namePlaceholder: 'Name',
-    sent: [
-      { id: 'nova_40', speaker: 'nova', text: "Message sent across the network. They'll hear you." },
-      { id: 's16', speaker: 'survivor', text: "...We're not alone anymore." },
-    ] as Line[],
-    sentLog: 'REPLY TRANSMITTED ✓',
+    replyLabel: 'Reply to Vishal',
+    replyHref: 'mailto:vjangir04@gmail.com?subject=Relay%20received%20%E2%80%94%20THE%20LAST%20CHANNEL',
     continueLabel: 'Continue →',
-    supabaseTable: 'replies',
+    outro: [{ id: 's16', speaker: 'survivor', text: "...We're not alone anymore." }] as Line[],
+    toFinalFadeMs: 1500,
   },
 
   // ===================== FINAL SCREEN (#final) =====================
   final: {
     hash: '#final',
     headline: 'The nodes were fiction. The work is real.',
-    subline: "I'm Vishal Kumar. I build AI systems and growth engines. Bengaluru.",
-    aboutTitle: 'About me',
-    about: '[PLACEHOLDER]',
+    subline: "I'm Vishal Kumar. I build AI products and growth engines. Bengaluru.",
     experienceTitle: 'Experience',
     experience: [
       { when: '2020–2022', where: 'Bangalore', role: 'Tech & Operations Lead', org: 'Rams Interiors', text: 'Digitised operations, project tracking, vendor coordination and reporting.' },
@@ -450,14 +479,16 @@ export const CONFIG = {
     projectLinkLabel: 'View →',
     wisprTitle: "How I'd grow Wispr in India",
     wispr: [
-      { title: '[PLACEHOLDER]', text: '[PLACEHOLDER]' },
-      { title: '[PLACEHOLDER]', text: '[PLACEHOLDER]' },
-      { title: '[PLACEHOLDER]', text: '[PLACEHOLDER]' },
+      { title: 'Speak like India speaks', text: 'Lean into Hinglish and Indian English, and show Flow handling how people actually talk.' },
+      { title: 'Founders & sales on WhatsApp/LinkedIn', text: "Turn the people who message all day into Flow's loudest users." },
+      { title: 'Campus voice', text: 'Every hostel has someone typing a 3,000-word assignment at 2 a.m. Get them talking instead.' },
     ],
+    replayLabel: '▶ Replay transmission',
+    replayingLabel: '■ Stop transmission',
     buttons: [
-      { label: 'Resume', href: '#' },
-      { label: 'LinkedIn', href: '#' },
-      { label: 'Email', href: '#' },
+      { label: 'Email', href: 'mailto:vjangir04@gmail.com' },
+      { label: 'Resume', href: '#' }, // TODO: add link
+      { label: 'LinkedIn', href: '#' }, // TODO: add link
     ],
     footer: 'Built by voice with Wispr Flow.',
     playAgain: '↺ Play again',

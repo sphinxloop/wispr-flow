@@ -123,18 +123,24 @@ export class Dialogue {
     let staticSrc: AudioBufferSourceNode | null = null;
 
     if (nova) {
-      const hp = ctx.createBiquadFilter();
-      hp.type = 'highpass';
-      hp.frequency.value = CONFIG.audio.novaBandLowHz;
-      const lp = ctx.createBiquadFilter();
-      lp.type = 'lowpass';
-      lp.frequency.value = CONFIG.audio.novaBandHighHz;
-      const ws = ctx.createWaveShaper();
-      if (CONFIG.audio.novaDistortion > 0) ws.curve = distortionCurve(CONFIG.audio.novaDistortion);
       const out = ctx.createGain();
-      out.gain.value = 0.9;
-      src.connect(hp).connect(lp).connect(ws).connect(out).connect(master);
-      nodes.push(hp, lp, ws, out);
+      out.gain.value = CONFIG.audio.voiceGain;
+      if (CONFIG.audio.novaRadioFilter) {
+        const hp = ctx.createBiquadFilter();
+        hp.type = 'highpass';
+        hp.frequency.value = CONFIG.audio.novaBandLowHz;
+        const lp = ctx.createBiquadFilter();
+        lp.type = 'lowpass';
+        lp.frequency.value = CONFIG.audio.novaBandHighHz;
+        const ws = ctx.createWaveShaper();
+        if (CONFIG.audio.novaDistortion > 0) ws.curve = distortionCurve(CONFIG.audio.novaDistortion);
+        src.connect(hp).connect(lp).connect(ws).connect(out);
+        nodes.push(hp, lp, ws);
+      } else {
+        src.connect(out); // clean voice, no filter
+      }
+      out.connect(master);
+      nodes.push(out);
       // Tap the Nova chain so the core visual can follow the voice.
       const an = ctx.createAnalyser();
       an.fftSize = 512;
@@ -150,7 +156,10 @@ export class Dialogue {
         staticSrc.start();
       }
     } else {
-      src.connect(master);
+      const out = ctx.createGain();
+      out.gain.value = CONFIG.audio.voiceGain;
+      src.connect(out).connect(master);
+      nodes.push(out);
     }
 
     return new Promise<void>((resolve, reject) => {

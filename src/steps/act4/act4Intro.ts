@@ -16,6 +16,7 @@ export const act4IntroStep: Step = {
     hideAllPanels(g);
     g.inputLocked = true;
     setHint(g, null);
+    monitor.applyStage('network');
     // near-silence: a faint breathing core keeps the screen alive
     monitor.core.setState('dormant');
 
@@ -28,7 +29,7 @@ export const act4IntroStep: Step = {
       monitor.setLight('red');
       monitor.core.setState('alert');
       alarmBeep(g.audio);
-      const back = sleep(1300, g.signal).then(() => {
+      const back = sleep(A.bannerMs, g.signal).then(() => {
         monitor.setLight('green');
         monitor.core.setState('online');
       });
@@ -38,6 +39,6 @@ export const act4IntroStep: Step = {
       if (g.signal.aborted) tx.hideBanner();
     }
     tx.hideBanner();
-    g.goto('act4Letter');
+    g.goto('act4Transmission');
   },
 };

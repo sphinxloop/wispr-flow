@@ -10,6 +10,11 @@ export class FinalScreen {
   readonly root: HTMLElement;
   readonly playAgainLink: HTMLAnchorElement;
   private shown = false;
+  private game: Game | null = null;
+  private audioEl: HTMLAudioElement | null = null;
+  private replayBtn!: HTMLButtonElement;
+  private barFill!: HTMLElement;
+  private note!: HTMLElement;
 
   constructor(parent: HTMLElement = document.body) {
     const root = (this.root = h('div', 'final', parent));
@@ -22,10 +27,6 @@ export class FinalScreen {
     const hero = h('header', 'final-hero', col);
     h('h1', 'final-headline', hero).textContent = F.headline;
     h('p', 'final-subline', hero).textContent = F.subline;
-
-    // about
-    const about = this.section(col, F.aboutTitle);
-    F.about.split(/\n\s*\n/).forEach((p) => { h('p', 'final-text', about).textContent = p; });
 
     // experience timeline
     const exp = this.section(col, F.experienceTitle);
@@ -48,25 +49,47 @@ export class FinalScreen {
       h('h3', 'final-card-title', card).textContent = p.name;
       h('p', 'final-card-text', card).textContent = p.text;
       const a = h('a', 'final-card-link', card);
-      a.textContent = F.projectLinkLabel;
-      this.externalise(a, p.link);
+      if (p.link && p.link !== '#') {
+        a.textContent = F.projectLinkLabel;
+        this.externalise(a, p.link);
+      } else {
+        a.className = 'final-card-link soon';
+        a.removeAttribute('href');
+        a.textContent = 'Link coming soon';
+      }
     }
 
     // wispr
     const wispr = this.section(col, F.wisprTitle);
     const wgrid = h('div', 'final-grid final-wispr', wispr);
-    for (const w of F.wispr) {
+    F.wispr.forEach((w, i) => {
       const card = h('article', 'final-card', wgrid);
+      h('div', 'final-num', card).textContent = String(i + 1).padStart(2, '0');
       h('h3', 'final-card-title', card).textContent = w.title;
       h('p', 'final-card-text', card).textContent = w.text;
-    }
+    });
 
     // buttons
     const btns = h('div', 'final-buttons', col);
+    const rw = h('div', 'final-replay-wrap', btns);
+    this.replayBtn = h('button', 'final-pill final-replay', rw);
+    this.replayBtn.type = 'button';
+    this.replayBtn.textContent = F.replayLabel;
+    this.replayBtn.addEventListener('click', () => (this.audioEl ? this.stopReplay() : this.startReplay()));
+    const bar = h('div', 'final-progress', rw);
+    this.barFill = h('div', 'final-progress-fill', bar);
+    this.note = h('div', 'final-note', rw);
+    this.note.textContent = 'Audio unavailable';
+    this.note.hidden = true;
     for (const b of F.buttons) {
       const a = h('a', 'final-pill', btns);
       a.textContent = b.label;
-      this.externalise(a, b.href);
+      if (b.href && b.href !== '#') this.externalise(a, b.href);
+      else {
+        a.classList.add('disabled');
+        a.setAttribute('aria-disabled', 'true');
+        a.title = 'Coming soon';
+      }
     }
 
     // footer
@@ -81,6 +104,33 @@ export class FinalScreen {
     const s = h('section', 'final-section', col);
     h('h2', 'final-h2', s).textContent = title;
     return s;
+  }
+
+  attach(game: Game): void { this.game = game; }
+
+  private startReplay(): void {
+    this.note.hidden = true;
+    const el = new Audio(CONFIG.act4.transmission.src);
+    this.audioEl = el;
+    el.muted = !!this.game?.audio?.muted;
+    this.game?.audio?.onMute?.((m) => { if (this.audioEl === el) el.muted = m; });
+    this.replayBtn.textContent = F.replayingLabel;
+    this.replayBtn.classList.add('playing');
+    el.addEventListener('timeupdate', () => {
+      if (this.audioEl === el && el.duration) this.barFill.style.width = `${Math.min(100, (el.currentTime / el.duration) * 100)}%`;
+    });
+    el.addEventListener('ended', () => { if (this.audioEl === el) this.stopReplay(); });
+    el.addEventListener('error', () => { if (this.audioEl === el) { this.stopReplay(); this.note.hidden = false; } });
+    el.play().catch(() => { if (this.audioEl === el) { this.stopReplay(); this.note.hidden = false; } });
+  }
+
+  stopReplay(): void {
+    const el = this.audioEl;
+    this.audioEl = null;
+    if (el) { try { el.pause(); el.removeAttribute('src'); el.load(); } catch { /* ignore */ } }
+    this.replayBtn.textContent = F.replayLabel;
+    this.replayBtn.classList.remove('playing');
+    this.barFill.style.width = '0%';
   }
 
   private externalise(a: HTMLAnchorElement, href: string) {
@@ -106,6 +156,7 @@ export class FinalScreen {
 
   hide(): void {
     this.shown = false;
+    this.stopReplay();
     this.root.classList.remove('in');
     this.root.hidden = true;
     document.body.classList.remove('final-on');
@@ -120,6 +171,7 @@ export function getFinalScreen(): FinalScreen {
 /** Hash routing: #final shows the final screen (also on load); "play again" restarts the game. */
 export function initFinalRoute(game: Game): void {
   const fs = getFinalScreen();
+  fs.attach(game);
   const goFinal = () => {
     if (location.hash === F.hash && game.current !== 'final') {
       fs.show();
@@ -130,6 +182,7 @@ export function initFinalRoute(game: Game): void {
   fs.playAgainLink.addEventListener('click', (e) => {
     e.preventDefault();
     history.replaceState(null, '', location.pathname + location.search);
+    fs.stopReplay();
     fs.hide();
     game.goto('start');
   });
