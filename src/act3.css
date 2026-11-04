@@ -1,0 +1,66 @@
+/* Act 3 puzzle additions: Bangalore strip, London label, Queensland slots, RECOVERED FREQUENCIES. */
+
+/* Bangalore */
+.np-decrypt .np-note { text-align: center; opacity: 0.85; }
+.np-alpha-cell { position: relative; padding-bottom: 14px; }
+.np-alpha-cell:not(.hot):not(.prev) { opacity: 0.55; }
+.np-alpha-cell.hot {
+  border-color: var(--amber); background: rgba(255, 179, 71, 0.16);
+  box-shadow: 0 0 12px rgba(255, 170, 60, 0.7), inset 0 0 8px rgba(255, 170, 60, 0.3);
+}
+.np-alpha-cell.hot .np-alpha-l { color: #fff2c8; text-shadow: 0 0 8px rgba(255, 200, 100, 0.9); }
+.np-alpha-cell.prev { opacity: 0.4; }
+.np-alpha-m { position: absolute; left: 0; right: 0; bottom: 1px; text-align: center; font-size: 0.6em; letter-spacing: 0; color: var(--amber); white-space: nowrap; }
+
+/* London */
+.np-city {
+  text-align: center; font-size: 1.6em; letter-spacing: 0.1em; white-space: nowrap; color: #e2ffbf; line-height: 1.1;
+  text-shadow: var(--ca), 0 0 12px rgba(200, 255, 140, 0.7);
+}
+
+.np-tune { gap: 6px; }
+.np-tune .np-readout { font-size: 2.6em; }
+.np-tune .np-dial { max-height: 150px; }
+
+/* Queensland */
+.np-slots { display: flex; gap: 0.4em; max-width: 100%; }
+.np-slot {
+  width: 1.15em; height: 1.4em; display: inline-flex; align-items: center; justify-content: center; font-size: 1.9em; flex: none;
+  color: var(--amber); border-bottom: 2px solid rgba(255, 179, 71, 0.6); text-shadow: 0 0 10px rgba(255, 170, 60, 0.8);
+}
+.np-slot.filled { animation: slotin 0.35s ease-out; }
+@keyframes slotin { from { transform: scale(1.6); opacity: 0; } to { transform: none; opacity: 1; } }
+.np-morse-cell { transition: background 0.08s, box-shadow 0.08s, border-color 0.08s; }
+.np-morse-cell.hot {
+  background: rgba(255, 179, 71, 0.28); border-color: var(--amber); box-shadow: 0 0 14px rgba(255, 170, 60, 0.9);
+}
+.np-morse-cell.hot b { color: #fff2c8; text-shadow: 0 0 8px rgba(255, 200, 100, 0.9); }
+
+/* RECOVERED FREQUENCIES (bottom-left of the globe card) */
+.freq-panel {
+  position: absolute; left: 10px; bottom: 10px; z-index: 3; max-width: calc(100% - 20px); padding: 8px 12px;
+  background: rgba(4, 8, 4, 0.82); border: 1px solid rgba(182, 255, 122, 0.4); border-radius: 4px; pointer-events: none;
+  font-size: 0.8em; text-shadow: none;
+}
+.freq-title { font-size: 0.78em; letter-spacing: 0.22em; color: var(--amber); margin-bottom: 4px; }
+.freq-row { color: #e2ffbf; letter-spacing: 0.05em; line-height: 1.5; white-space: nowrap; }
+.freq-row.fresh { animation: freqin 2.4s ease-out; }
+@keyframes freqin {
+  0% { background: rgba(255, 200, 100, 0.8); color: #fff; transform: translateX(-12px); opacity: 0; }
+  15% { opacity: 1; transform: none; }
+  100% { background: transparent; }
+}
+.relay.puzzle .freq-panel { font-size: 0.62em; padding: 5px 7px; }
+.relay.puzzle .freq-row { white-space: normal; }
+.freq-panel.emph { font-size: 1.05em; border-color: var(--amber); box-shadow: 0 0 22px rgba(255, 170, 60, 0.35); background: rgba(10, 8, 3, 0.88); }
+.freq-panel.emph .freq-row { color: #fff0c4; }
+
+@media (max-width: 760px), (orientation: portrait) {
+  .freq-panel, .freq-panel.emph { font-size: 0.68em; padding: 5px 8px; left: 6px; bottom: 6px; }
+  .freq-row { white-space: normal; line-height: 1.35; }
+  .relay.puzzle .freq-panel { display: none; }
+  .np-city { font-size: 1.15em; letter-spacing: 0.06em; }
+  .np-alpha-cell { padding-bottom: 11px; }
+  .np-alpha-m { font-size: 0.5em; }
+  .np-slot { font-size: 1.5em; }
+}

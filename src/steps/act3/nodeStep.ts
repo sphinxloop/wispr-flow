@@ -1,7 +1,7 @@
 import { CONFIG } from '../../config';
 import type { Line } from '../../config';
 import type { Game, NodeKey, Step } from '../../core/stateMachine';
-import { enterAct3, nextAfterNode, nodeData, updateMesh } from './shared';
+import { enterAct3, markFresh, nextAfterNode, nodeData, updateMesh } from './shared';
 import { unlock } from '../common';
 
 /** What a node's puzzle panel provides. */
@@ -71,6 +71,7 @@ export function makeNodeStep(spec: NodeSpec): Step {
       await view.solved?.();
       await g.dialogue.play(spec.success, g.signal);
       g.state.solved.add(spec.key);
+      markFresh(spec.key);
       relay.liveGlobe?.setNodeState(nodeData(spec.key).name, 'solved');
       updateMesh(g);
       const sig = g.signal;

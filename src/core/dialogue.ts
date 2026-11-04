@@ -10,6 +10,8 @@ const LOAD_TIMEOUT_MS = 2500;
 export interface PlayOpts {
   /** false: Nova's text is appended to the log instantly instead of typed (video scenes). */
   typeOnTerminal?: boolean;
+  /** Hold time when the line has no audio file (replaces the text-length timing). */
+  noAudioMs?: number;
 }
 
 function distortionCurve(amount: number): Float32Array<ArrayBuffer> {
@@ -36,7 +38,7 @@ export class Dialogue {
     try {
       for (const line of lines) {
         if (signal.aborted) throw abortError();
-        await this.playLine(line, signal, opts.typeOnTerminal !== false);
+        await this.playLine(line, signal, opts.typeOnTerminal !== false, opts.noAudioMs);
         await sleep(CONFIG.timing.lineGapMs, signal);
       }
     } finally {
@@ -45,7 +47,7 @@ export class Dialogue {
     }
   }
 
-  private async playLine(line: Line, signal: AbortSignal, typeOnTerminal: boolean): Promise<void> {
+  private async playLine(line: Line, signal: AbortSignal, typeOnTerminal: boolean, noAudioMs?: number): Promise<void> {
     const buffer = await this.load(line.id, signal);
     if (signal.aborted) throw abortError();
 
@@ -66,7 +68,7 @@ export class Dialogue {
         await Promise.all([playing, typing]);
       } else {
         const T = CONFIG.timing;
-        const ms = Math.max(T.noAudioMinMs, T.noAudioBaseMs + line.text.length * T.noAudioPerCharMs);
+        const ms = noAudioMs ?? Math.max(T.noAudioMinMs, T.noAudioBaseMs + line.text.length * T.noAudioPerCharMs);
         this.monitor.setAudioLog(`${CONFIG.audioLogLabel} · ${CONFIG.audioLogSpeakers[line.speaker]}`);
         try {
           await Promise.all([sleep(ms, signal), typing]);
@@ -139,7 +141,7 @@ export class Dialogue {
       out.connect(an);
       nodes.push(an);
       this.monitor.core.setAnalyser(an);
-      staticSrc = this.audio.noiseSource();
+      staticSrc = CONFIG.audio.novaStaticGain > 0 ? this.audio.noiseSource() : null;
       if (staticSrc) {
         const sg = ctx.createGain();
         sg.gain.value = CONFIG.audio.novaStaticGain;

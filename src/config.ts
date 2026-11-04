@@ -54,7 +54,7 @@ export const CONFIG = {
     novaBandLowHz: 300,
     novaBandHighHz: 3000,
     novaDistortion: 12, // 0 = clean
-    novaStaticGain: 0.025,
+    novaStaticGain: 0, // faint radio hiss under Nova's voice; 0 = off
   },
 
   // Screen text blocks. Each string is one line on the CRT.
@@ -242,14 +242,32 @@ export const CONFIG = {
   hints: {
     wake: 'Hold your Wispr Flow key and say: NOVA, WAKE UP',
     whisper: 'Hold your Wispr Flow key and WHISPER: NOVA, WAKE UP',
-    auth: 'Use Wispr Flow to speak the access code: TIME · DATE · CLEARANCE (check the evidence)',
+    auth: 'Use Wispr Flow to speak the access code: TIME · DATE · CLEARANCE',
     archive: 'Hold your Wispr Flow key and say: OPEN THE ARCHIVE',
     chooseNode: 'Click a relay node on the globe to wake it',
-    bangalore: 'Decode the word, then say it with Wispr Flow',
-    london: 'Speak the frequency with Wispr Flow',
-    queensland: 'Decode the call sign and say it with Wispr Flow',
-    finalRelay: 'Say all three frequencies in one go with Wispr Flow — check the personnel files',
+    bangalore: 'Count back one letter, then say the word with Wispr Flow',
+    london: 'Say the frequency with Wispr Flow',
+    queensland: 'Read the highlighted letters and say the call sign with Wispr Flow',
+    finalRelay: 'Say all three frequencies, oldest node first, with Wispr Flow',
     reply: 'Speak your reply to Vishal with Wispr Flow',
+  },
+  // Large centred hint overlay (also keeps the small hint above the prompt bar).
+  hintOverlay: {
+    enabled: true,
+    fadeMs: 350,
+    autoHideMs: 4500, // fades by itself after this long (0 = stay until voice input); the small hint by the prompt stays
+    icon: '🎙', // shown beside a small key-cap glyph
+    keyLabel: 'WISPR FLOW',
+  },
+
+  // Evidence reveal after nova_04: blink → close-up + line, for each artifact, then fly into the tiles.
+  evidenceReveal: {
+    order: ['clock', 'calendar', 'badge'] as ('clock' | 'calendar' | 'badge')[],
+    blinkMs: 600, // eyelid close + open
+    holdNoAudioMs: 2500, // how long each close-up stays when its voice file is missing
+    holdAfterLineMs: 400, // extra pause after the line finishes
+    flyMs: 500, // each close-up shrinking into its tile
+    flyStaggerMs: 500, // one at a time: each starts as the previous lands
   },
 
   // ===================== ACT 3: THE RELAY =====================
@@ -278,8 +296,9 @@ export const CONFIG = {
         name: 'BANGALORE', lat: 12.97, lon: 77.59, title: 'NODE 01 — DECRYPT',
         enter: [{ id: 'nova_23', speaker: 'nova', text: 'Bangalore. His first node. The note is corrupted.' }] as Line[],
         noteLabel: 'CORRUPTED FIELD NOTE',
-        note: 'PLANTED SEVEN ANTENNAS BEFORE THE MONSOON. THE WORD THAT HOLDS THEM TOGETHER:',
-        cipher: 'YLSHF',
+        note: 'THE WORD THAT HOLDS THEM TOGETHER:',
+        cipher: 'SFMBZ', // each letter shifted forward by ONE
+        shift: 1,
         answer: 'relay',
         wrongFirst: [{ id: 'nova_24', speaker: 'nova', text: 'Vishal shifted his letters forward. Count back.' }] as Line[],
         success: [{ id: 'nova_25', speaker: 'nova', text: 'Decrypted. Relay. Node one is awake.' }] as Line[],
@@ -287,6 +306,7 @@ export const CONFIG = {
       london: {
         name: 'LONDON', lat: 51.51, lon: -0.13, title: 'NODE 02 — TUNE',
         enter: [{ id: 'nova_26', speaker: 'nova', text: 'London. The node is buried in static. It needs a frequency.' }] as Line[],
+        cityLabel: 'LONDON · 51.5° N',
         note: 'EVERY NODE LISTENS TO WHERE IT STANDS.',
         readoutEmpty: '---.--',
         min: 51.0, max: 51.6, // accepted range
@@ -306,6 +326,7 @@ export const CONFIG = {
         loopGapMs: 1800,
         toneHz: 640,
         replayLabel: 'REPLAY',
+        slotsLabel: 'CALL SIGN',
         answer: 'nova',
         wrongFirst: [{ id: 'nova_30', speaker: 'nova', text: 'Use the card. Short and long. Dots and dashes.' }] as Line[],
         success: [{ id: 'nova_31', speaker: 'nova', text: "...Nova. He named me. I didn't know." }] as Line[],
@@ -324,6 +345,16 @@ export const CONFIG = {
       signalLabel: 'INCOMING SIGNAL',
       glitchChars: '▒░#%@&?/',
       networkLog: 'ALL RELAY NODES AWAKE — MESH LINK: GLOBAL',
+      frequenciesTitle: 'RECOVERED FREQUENCIES',
+    },
+    // A row is added to RECOVERED FREQUENCIES as each node is solved. Shown in this (shuffled) order.
+    frequencies: {
+      displayOrder: ['london', 'queensland', 'bangalore'] as const,
+      rows: {
+        bangalore: 'BANGALORE · PLANTED 2020 · 12.97',
+        london: 'LONDON · PLANTED 2022 · 51.5',
+        queensland: 'QUEENSLAND · PLANTED 2024 · 27.47',
+      },
     },
 
     personnelTitle: 'RECOVERED PERSONNEL FILE',

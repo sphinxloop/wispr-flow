@@ -3,7 +3,7 @@ import type { Step } from '../../core/stateMachine';
 import { parseNumbers } from '../../core/normalize';
 import { h } from '../../core/util';
 import { unlock } from '../common';
-import { enterAct3, nodeData } from './shared';
+import { enterAct3, nodeData, syncFrequencies } from './shared';
 
 const F = CONFIG.act3.finalRelay;
 
@@ -29,6 +29,7 @@ export const act3FinalStep: Step = {
     g.state.act3IntroDone = true;
     const globe = enterAct3(g, 'fill');
     relay.nodePanel.close();
+    syncFrequencies(g, true);
     globe.resumeSpin();
     monitor.setHint(null);
     g.inputLocked = true;

@@ -62,11 +62,12 @@ export const act3LondonStep = makeNodeStep({
   success: N.success,
   build(g, body, onStop): NodeView {
     body.classList.add('np-tune');
+    h('div', 'np-city', body).textContent = N.cityLabel;
+    h('p', 'np-note np-tune-note', body).textContent = N.note;
     h('div', 'np-label', body).textContent = CONFIG.act3.ui.readoutLabel;
     const readout = h('div', 'np-readout empty', body);
     readout.textContent = N.readoutEmpty;
     const setNeedle = buildDial(body);
-    h('p', 'np-note np-tune-note', body).textContent = N.note;
 
     let stat: StaticHandle | null = null;
     let tone: Handle | null = null;

@@ -57,6 +57,11 @@ export class Monitor {
   private signalBars: HTMLElement[] = [];
   private hintEl: HTMLElement;
   private voiceHint: HTMLElement;
+  private hintOverlay: HTMLElement | null = null;
+  private hintOverlayText: HTMLElement | null = null;
+  private hintText: string | null = null;
+  private hintDismissed = false;
+  private wasLocked = false;
   private audioLogEl: HTMLElement;
   private isLocked: () => boolean = () => false;
   private clockBase = 0;
@@ -86,6 +91,7 @@ export class Monitor {
     this.power.textContent = T.power;
 
     const main = h('div', 'term-main', this.root);
+    if (CONFIG.hintOverlay.enabled) this.buildHintOverlay(main);
     // left zone: the Nova core (or the Act 2 panels in its place)
     const stage = h('div', 'term-stage', main);
     this.core = new NovaCore(stage);
@@ -151,6 +157,9 @@ export class Monitor {
     const now = performance.now();
     this.meter.tick(now);
     const locked = this.isLocked();
+    if (this.wasLocked && !locked) this.hintDismissed = false; // Nova finished replying: bring the big hint back
+    this.wasLocked = locked;
+    this.paintHintOverlay(locked);
     this.promptRow.classList.toggle('locked', locked);
     this.voiceHint.classList.toggle('dim', locked);
     const hint = locked ? CONFIG.terminal.promptTransmitting : CONFIG.terminal.promptHint;
@@ -183,7 +192,56 @@ export class Monitor {
   setHint(text: string | null) {
     this.voiceHint.hidden = !text;
     this.voiceHint.textContent = text ?? '';
+    this.hintText = text;
+    this.hintDismissed = false;
+    if (this.hintOverlayText && text) this.hintOverlayText.textContent = text;
+    this.paintHintOverlay(this.isLocked());
   }
+
+  get currentHint(): string | null { return this.hintText; }
+
+  /** A voice insert arrived: fade the centred overlay out. */
+  dismissHint() {
+    this.hintDismissed = true;
+    this.paintHintOverlay(this.isLocked());
+  }
+
+  /** Bring the centred overlay back (e.g. after a wrong answer that did not lock input). */
+  reshowHint() {
+    this.hintDismissed = false;
+    this.paintHintOverlay(this.isLocked());
+  }
+
+  private buildHintOverlay(parent: HTMLElement) {
+    const C = CONFIG.hintOverlay;
+    const o = h('div', 'hint-overlay', parent);
+    o.style.setProperty('--hint-fade', C.fadeMs + 'ms');
+    o.setAttribute('aria-hidden', 'true');
+    const box = h('div', 'hint-overlay-box', o);
+    const icons = h('div', 'hint-overlay-icons', box);
+    h('span', 'hint-key', icons).textContent = C.keyLabel;
+    h('span', 'hint-mic', icons).textContent = C.icon;
+    this.hintOverlayText = h('div', 'hint-overlay-text', box);
+    this.hintOverlay = o;
+  }
+
+  private paintHintOverlay(locked: boolean) {
+    const o = this.hintOverlay;
+    if (!o) return;
+    let on = !!this.hintText && !locked && !this.hintDismissed && !!this.root.offsetParent;
+    if (on) {
+      const cine = document.querySelector('.cine') as HTMLElement | null;
+      if (document.querySelector('.closeup, .blink-lids, .fly-wrap') || cine?.style.display === 'flex') on = false;
+    }
+    // Auto-fade after a few seconds so it never hides puzzle clues for long (it returns after a wrong answer).
+    const now = performance.now();
+    if (on && !this.hintShownAt) this.hintShownAt = now;
+    if (!on) this.hintShownAt = 0;
+    const auto = CONFIG.hintOverlay.autoHideMs;
+    if (on && auto > 0 && now - this.hintShownAt > auto) { this.hintDismissed = true; on = false; this.hintShownAt = 0; }
+    o.classList.toggle('on', on);
+  }
+  private hintShownAt = 0;
 
   /** Pulsing "audio log" tag at the log bottom while a line without an audio file plays. null hides it. */
   setAudioLog(text: string | null) {

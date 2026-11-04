@@ -3,20 +3,22 @@ import type { Step } from '../core/stateMachine';
 import { matchesCode } from '../core/normalize';
 import { enterMonitor, unlock } from './common';
 
-// Also the authentication step: look at the objects, say the code.
+// Also the authentication step: a cinematic reveal of the objects, then say the code.
 export const evidenceStep: Step = {
   id: 'evidence',
-  enter(g) {
+  async enter(g) {
     const { monitor, artifacts } = g.ui;
     enterMonitor(g, 'green');
     monitor.applyStage('online');
     g.state.wrongAuthCount = 0;
-    if (!monitor.contains(CONFIG.screens.authPrompt)) {
-      monitor.setLines([...CONFIG.screens.online, CONFIG.screens.authPrompt]);
-    }
-    monitor.setHint(CONFIG.hints.auth);
+    g.inputLocked = true;
+    monitor.setHint(null);
     artifacts.setIntensity('normal');
-    artifacts.show();
+    if (!monitor.contains(CONFIG.screens.online[0])) monitor.setLines(CONFIG.screens.online);
+
+    await artifacts.reveal(g.signal);
+    await monitor.typeLines([CONFIG.screens.authPrompt]);
+    monitor.setHint(CONFIG.hints.auth);
     unlock(g);
   },
   async onVoice(text, _norm, g) {

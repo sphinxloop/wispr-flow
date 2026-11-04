@@ -62,11 +62,19 @@ game.sfx = sfx;
 game.dialogue = dialogue;
 game.input = input;
 
-input.onSubmit = (raw, normalized) => game.voice(raw, normalized);
-input.onVoiceInsert = () => monitor.meter.burst();
+input.onSubmit = (raw, normalized) => {
+  const step = game.current;
+  const hint = monitor.currentHint;
+  game.voice(raw, normalized);
+  // A wrong answer that does not lock input: bring the centred hint back if nothing changed.
+  setTimeout(() => {
+    if (game.current === step && !game.inputLocked && monitor.currentHint === hint) monitor.reshowHint();
+  }, 700);
+};
+input.onVoiceInsert = () => { monitor.meter.burst(); monitor.dismissHint(); };
 monitor.bindLock(() => game.inputLocked);
 artifacts.setHooks({
-  play: (line, sig) => dialogue.play([line], sig),
+  play: (line, sig, opts) => dialogue.play([line], sig, opts),
   onSeen: (id) => game.state.artifactsSeen.add(id),
   onClose: () => input.focus(),
 });

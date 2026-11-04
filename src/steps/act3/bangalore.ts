@@ -13,48 +13,23 @@ export const act3BangaloreStep = makeNodeStep({
   enter: N.enter,
   wrongFirst: N.wrongFirst,
   success: N.success,
-  build(_g, body, onStop): NodeView {
+  build(_g, body): NodeView {
     body.classList.add('np-decrypt');
     h('div', 'np-label', body).textContent = N.noteLabel;
-    const note = h('p', 'np-note', body);
-    // The note text with a handful of "corrupted" characters that flicker.
-    const bad: HTMLElement[] = [];
-    const pool = CONFIG.act3.ui.glitchChars;
-    const chars = Array.from(N.note);
-    const picks = new Set<number>();
-    while (picks.size < Math.min(7, Math.floor(chars.length / 8))) {
-      const i = Math.floor(Math.random() * chars.length);
-      if (chars[i] !== ' ') picks.add(i);
-    }
-    chars.forEach((c, i) => {
-      if (picks.has(i)) {
-        const sp = h('span', 'np-bad', note);
-        sp.textContent = c;
-        sp.style.animationDelay = `${(Math.random() * 1.4).toFixed(2)}s`;
-        bad.push(sp);
-      } else note.append(c);
-    });
-    const orig = bad.map((b) => b.textContent ?? '');
-    const timer = window.setInterval(() => {
-      bad.forEach((b, i) => {
-        b.textContent = Math.random() < 0.35 ? pool[Math.floor(Math.random() * pool.length)] : orig[i];
-      });
-    }, 170);
-    onStop(() => clearInterval(timer));
-
+    h('p', 'np-note', body).textContent = N.note;
     h('div', 'np-cipher', body).textContent = N.cipher;
 
     h('div', 'np-label', body).textContent = CONFIG.act3.ui.alphabetTitle;
     const strip = h('div', 'np-alpha', body);
+    const used = new Set(Array.from(N.cipher.toUpperCase()).map((c) => c.charCodeAt(0) - 65));
+    const prev = new Set(Array.from(used).map((i) => (i - N.shift + 26) % 26));
     for (let i = 0; i < 26; i++) {
-      const cell = h('div', 'np-alpha-cell', strip);
+      const cell = h('div', 'np-alpha-cell' + (used.has(i) ? ' hot' : '') + (prev.has(i) ? ' prev' : ''), strip);
       h('span', 'np-alpha-l', cell).textContent = String.fromCharCode(65 + i);
       h('span', 'np-alpha-n', cell).textContent = String(i + 1);
+      h('span', 'np-alpha-m', cell).textContent = used.has(i) ? `‹−${N.shift}` : '';
     }
 
-    return {
-      check: (raw) => letters(raw).includes(N.answer),
-      stop: () => clearInterval(timer),
-    };
+    return { check: (raw) => letters(raw).includes(N.answer), stop: () => {} };
   },
 });

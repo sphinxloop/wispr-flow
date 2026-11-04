@@ -1,5 +1,6 @@
 import { CONFIG } from '../config';
 import { h } from '../core/util';
+import '../act3.css';
 
 /** The framed puzzle panel that sits beside the globe while a relay node is open. */
 export class NodePanel {

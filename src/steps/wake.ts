@@ -31,7 +31,6 @@ export const wakeStep: Step = {
     monitor.clear();
     await monitor.typeLines(CONFIG.screens.online, { className: 'success' });
     await g.dialogue.play(CONFIG.dialogue.novaWake, g.signal);
-    await monitor.typeLines([CONFIG.screens.authPrompt]);
     g.goto('evidence');
   },
 };
