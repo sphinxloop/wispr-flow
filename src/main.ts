@@ -24,7 +24,16 @@ import { act2IntroStep } from './steps/act2/act2Intro';
 import { act2Video1Step, act2Video2Step } from './steps/act2/act2Video';
 import { relayStep } from './steps/act2/relay';
 import { archiveStep } from './steps/act2/archive';
+import { act3IntroStep } from './steps/act3/act3Intro';
+import { act3BangaloreStep } from './steps/act3/bangalore';
+import { act3LondonStep } from './steps/act3/london';
+import { act3QueenslandStep } from './steps/act3/queensland';
+import { act3FinalStep } from './steps/act3/final';
+import { act3NetworkStep } from './steps/act3/network';
 import { endStep } from './steps/end';
+import { act4Steps } from './steps/act4';
+import { finalStep } from './steps/final';
+import { initFinalRoute } from './ui/finalScreen';
 
 // Aborted waits reject with AbortError by design; never surface them.
 window.addEventListener('unhandledrejection', (e) => { if (isAbort(e.reason)) e.preventDefault(); });
@@ -79,7 +88,7 @@ const skip = document.createElement('a');
 skip.className = 'skip-link';
 skip.dataset.nofocus = '1';
 skip.textContent = CONFIG.skipLink.text;
-skip.href = CONFIG.skipLink.href; // #final: placeholder, the link just navigates
+skip.href = CONFIG.skipLink.href; // #final: handled by initFinalRoute
 hud.append(mute, skip);
 app.appendChild(hud);
 
@@ -87,6 +96,10 @@ new Debug(game, monitor.root, app);
 
 [
   startStep, introStep, standbyStep, spikeStep, wakeStep, evidenceStep, grantedStep,
-  act2IntroStep, act2Video1Step, act2Video2Step, relayStep, archiveStep, endStep,
+  act2IntroStep, act2Video1Step, act2Video2Step, relayStep, archiveStep,
+  act3IntroStep, act3BangaloreStep, act3LondonStep, act3QueenslandStep, act3FinalStep, act3NetworkStep,
+  ...act4Steps, finalStep,
+  endStep,
 ].forEach((s) => game.register(s));
 game.goto('start');
+initFinalRoute(game);

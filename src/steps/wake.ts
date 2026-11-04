@@ -10,20 +10,17 @@ export const wakeStep: Step = {
     const { monitor } = g.ui;
     enterMonitor(g, 'amber-pulse');
     monitor.applyStage('listening');
-    if (!monitor.contains(CONFIG.screens.wakeHint)) {
-      monitor.clear();
-      await monitor.typeLines([CONFIG.screens.wakeHint], { className: 'faint' });
-    }
+    monitor.setHint(CONFIG.hints.whisper);
     unlock(g);
   },
   async onVoice(_text, normalized, g) {
     const { monitor } = g.ui;
     if (!normalized.includes(CONFIG.answers.wakeKeyword)) {
-      monitor.clear();
-      await monitor.typeLines([CONFIG.screens.wakeHint], { className: 'faint' });
+      g.sfx.glitch(); // not her name: the hint stays on screen
       return;
     }
     g.inputLocked = true;
+    monitor.setHint(null);
     if (g.state.rumble) {
       g.state.rumble.fadeOut(2000);
       g.state.rumble = null;

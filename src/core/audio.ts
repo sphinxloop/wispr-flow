@@ -58,7 +58,10 @@ export class AudioEngine {
   }
 }
 
+export interface StaticHandle extends Handle { setLevel(level: number): void }
+
 const nullHandle: Handle = { stop() {}, fadeOut() {} };
+const nullStatic: StaticHandle = { stop() {}, fadeOut() {}, setLevel() {} };
 
 export class Sfx {
   constructor(private a: AudioEngine) {}
@@ -376,5 +379,136 @@ export class Sfx {
         setTimeout(stop, ms + 50);
       },
     };
+  }
+
+  /** Loud radio static: filtered noise + sparse crackle. `setLevel(0..1)` scales `base`. */
+  radioStatic(base: number): StaticHandle {
+    const ctx = this.a.ensure();
+    const n = this.a.noiseSource();
+    if (!ctx || !n || !this.a.master) return nullStatic;
+    const t = ctx.currentTime;
+    const out = ctx.createGain();
+    out.gain.value = base;
+    out.connect(this.a.master);
+    const hp = ctx.createBiquadFilter();
+    hp.type = 'highpass';
+    hp.frequency.value = 700;
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = 7000;
+    n.connect(hp).connect(lp).connect(out);
+    // crackle: a looping buffer of random pops
+    const len = Math.floor(ctx.sampleRate * 1.7);
+    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) if (Math.random() < 0.0018) d[i] = (Math.random() * 2 - 1) * (0.6 + Math.random() * 0.4);
+    const crackle = ctx.createBufferSource();
+    crackle.buffer = buf;
+    crackle.loop = true;
+    const chp = ctx.createBiquadFilter();
+    chp.type = 'highpass';
+    chp.frequency.value = 1500;
+    const cg = ctx.createGain();
+    cg.gain.value = 2.2;
+    crackle.connect(chp).connect(cg).connect(out);
+    n.start(t);
+    crackle.start(t);
+    let done = false;
+    const stop = () => {
+      if (done) return;
+      done = true;
+      for (const s of [n, crackle]) {
+        try { s.stop(); } catch { /* already stopped */ }
+      }
+      out.disconnect();
+    };
+    return {
+      stop,
+      setLevel: (level) => {
+        if (done) return;
+        out.gain.cancelScheduledValues(ctx.currentTime);
+        out.gain.setTargetAtTime(base * Math.max(0, Math.min(1, level)), ctx.currentTime, 0.18);
+      },
+      fadeOut: (ms) => {
+        if (done) return;
+        const now = ctx.currentTime;
+        out.gain.cancelScheduledValues(now);
+        out.gain.setValueAtTime(out.gain.value, now);
+        out.gain.linearRampToValueAtTime(0, now + ms / 1000);
+        setTimeout(stop, ms + 50);
+      },
+    };
+  }
+
+  /** Clean steady sine that fades in (and out on request). */
+  steadyTone(hz: number, fadeInMs = 1200, peak = 0.1): Handle {
+    const ctx = this.a.ensure();
+    if (!ctx || !this.a.master) return nullHandle;
+    const t = ctx.currentTime;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(peak, t + fadeInMs / 1000);
+    g.connect(this.a.master);
+    const o = ctx.createOscillator();
+    o.type = 'sine';
+    o.frequency.value = hz;
+    o.connect(g);
+    o.start(t);
+    let done = false;
+    const stop = () => {
+      if (done) return;
+      done = true;
+      try { o.stop(); } catch { /* already stopped */ }
+      g.disconnect();
+    };
+    return {
+      stop,
+      fadeOut: (ms) => {
+        const now = ctx.currentTime;
+        g.gain.cancelScheduledValues(now);
+        g.gain.setValueAtTime(g.gain.value, now);
+        g.gain.linearRampToValueAtTime(0, now + ms / 1000);
+        setTimeout(stop, ms + 50);
+      },
+    };
+  }
+
+  /** One soft sine beep of `ms` (Morse). */
+  beep(hz: number, ms: number): void {
+    const ctx = this.a.ensure();
+    if (!ctx || !this.a.master) return;
+    const t = ctx.currentTime;
+    const d = ms / 1000;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(0.16, t + 0.008);
+    g.gain.setValueAtTime(0.16, t + Math.max(0.008, d - 0.01));
+    g.gain.linearRampToValueAtTime(0, t + d);
+    g.connect(this.a.master);
+    const o = ctx.createOscillator();
+    o.type = 'sine';
+    o.frequency.value = hz;
+    o.connect(g);
+    o.start(t);
+    o.stop(t + d + 0.02);
+  }
+
+  /** Soft rising chord (network live). */
+  chord(): void {
+    const ctx = this.a.ensure();
+    if (!ctx || !this.a.master) return;
+    const t = ctx.currentTime;
+    [261.63, 329.63, 392, 523.25, 659.25].forEach((hz, i) => {
+      const at = t + i * 0.22;
+      const g = ctx.createGain();
+      this.env(g, at, 0.07, 0.6, 1.4, 1.8);
+      g.connect(this.a.master!);
+      const o = ctx.createOscillator();
+      o.type = i % 2 ? 'triangle' : 'sine';
+      o.frequency.value = hz;
+      o.connect(g);
+      o.start(at);
+      o.stop(at + 3.9);
+    });
   }
 }

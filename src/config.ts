@@ -13,6 +13,11 @@ export const CONFIG = {
   title: 'THE LAST CHANNEL',
   // Master switch for ALL subtitles (intro cues + dialogue). Off for now.
   subtitlesEnabled: false,
+  // The Act 2 videos already contain Nova's voice: skip nova_13–15 and s14 there,
+  // play the videos at full volume and continue when each ends.
+  videoVoiceBaked: true,
+  audioLogLabel: '◉ AUDIO LOG', // pulses in the log while a line with no audio file is "playing"
+  audioLogSpeakers: { nova: 'NOVA', survivor: 'SURVIVOR' } as Record<Speaker, string>, // appended to the label
   subtitle: 'Headphones on. Voice input required — hold your Wispr Flow key to speak.',
   beginLabel: 'Begin',
   skipLink: { text: 'Skip to the real Vishal →', href: '#final' },
@@ -35,8 +40,10 @@ export const CONFIG = {
   timing: {
     typewriterCharMs: 28,
     lineGapMs: 450, // pause after each dialogue line
-    noAudioBaseMs: 1200, // subtitle-only duration = base + chars * perChar
+    noAudioBaseMs: 0, // no-audio duration = max(noAudioMinMs, base + chars * perChar)
     noAudioPerCharMs: 55,
+    noAudioMinMs: 1200,
+    maxIdleMs: 1500, // never leave longer than this with nothing animating or typing
     autoSubmitMs: 800, // delay after a voice insert before it is submitted
     minVoiceChars: 3, // a single input event must insert at least this many chars
     introFadeMs: 1500,
@@ -216,13 +223,13 @@ export const CONFIG = {
       { id: 'nova_19', speaker: 'nova', text: 'Your clearance can open it now. Say: open the archive.' },
     ] as Line[],
     prompt: 'VOICE ▸ SAY: "OPEN THE ARCHIVE"',
-    wrong: 'Say it clearly. Open the archive.', // Nova, text only (no audio)
+    wrong: [{ id: 'nova_20', speaker: 'nova', text: 'Say it clearly. Open the archive.' }] as Line[],
     globeRotateSecs: 40, // one full turn
     globeDrawMs: 3000,
     relayNodes: [
       { name: 'BANGALORE', lat: 12.97, lon: 77.59 },
       { name: 'LONDON', lat: 51.51, lon: -0.13 },
-      { name: 'QUEENSLAND', lat: -20.92, lon: 142.7 },
+      { name: 'QUEENSLAND', lat: -27.47, lon: 153.03 },
     ],
   },
 
@@ -230,7 +237,201 @@ export const CONFIG = {
     archiveWords: ['open', 'archive'], // all must appear (after normalising)
   },
 
-  endCard: 'ACT 3 — COMING SOON',
+  endCard: 'ACT 3 — COMING SOON', // legacy, unused once Act 3 is wired
+
+  // Hint line shown above the prompt bar on every voice-input step. Always mentions Wispr Flow.
+  hints: {
+    wake: 'Hold your Wispr Flow key and say: NOVA, WAKE UP',
+    whisper: 'Hold your Wispr Flow key and WHISPER: NOVA, WAKE UP',
+    auth: 'Use Wispr Flow to speak the access code: TIME · DATE · CLEARANCE (check the evidence)',
+    archive: 'Hold your Wispr Flow key and say: OPEN THE ARCHIVE',
+    chooseNode: 'Click a relay node on the globe to wake it',
+    bangalore: 'Decode the word, then say it with Wispr Flow',
+    london: 'Speak the frequency with Wispr Flow',
+    queensland: 'Decode the call sign and say it with Wispr Flow',
+    finalRelay: 'Say all three frequencies in one go with Wispr Flow — check the personnel files',
+    reply: 'Speak your reply to Vishal with Wispr Flow',
+  },
+
+  // ===================== ACT 3: THE RELAY =====================
+  act3: {
+    status: {
+      awake: (n: number) => `${n}/3 AWAKE`, // RELAY NODES row
+      meshGlobal: 'GLOBAL',
+    },
+    intro: [
+      { id: 'nova_21', speaker: 'nova', text: 'The archive is open. Three nodes. Bangalore. London. Queensland.' },
+      { id: 'nova_22', speaker: 'nova', text: 'Choose one. Wake it with your voice.' },
+    ] as Line[],
+    tryAgain: [{ id: 'nova_32', speaker: 'nova', text: "That's not it. Try again." }] as Line[],
+    globe: {
+      rotateDegPerSec: 6, // idle spin
+      focusMs: 1400, // rotate-to-node animation
+      tiltDeg: -15,
+      ocean: '#020604',
+      line: 'rgba(170, 255, 140, 0.55)',
+      graticule: 'rgba(170, 255, 140, 0.12)',
+      nodeColor: '#ffb347',
+      nodeSolvedColor: '#9dff7a',
+    },
+    nodes: {
+      bangalore: {
+        name: 'BANGALORE', lat: 12.97, lon: 77.59, title: 'NODE 01 — DECRYPT',
+        enter: [{ id: 'nova_23', speaker: 'nova', text: 'Bangalore. His first node. The note is corrupted.' }] as Line[],
+        noteLabel: 'CORRUPTED FIELD NOTE',
+        note: 'PLANTED SEVEN ANTENNAS BEFORE THE MONSOON. THE WORD THAT HOLDS THEM TOGETHER:',
+        cipher: 'YLSHF',
+        answer: 'relay',
+        wrongFirst: [{ id: 'nova_24', speaker: 'nova', text: 'Vishal shifted his letters forward. Count back.' }] as Line[],
+        success: [{ id: 'nova_25', speaker: 'nova', text: 'Decrypted. Relay. Node one is awake.' }] as Line[],
+      },
+      london: {
+        name: 'LONDON', lat: 51.51, lon: -0.13, title: 'NODE 02 — TUNE',
+        enter: [{ id: 'nova_26', speaker: 'nova', text: 'London. The node is buried in static. It needs a frequency.' }] as Line[],
+        note: 'EVERY NODE LISTENS TO WHERE IT STANDS.',
+        readoutEmpty: '---.--',
+        min: 51.0, max: 51.6, // accepted range
+        dialMin: 0, dialMax: 100, // dial scale shown
+        staticGain: 0.22, // loud static at full distance
+        staticFalloff: 25, // static quietens as |said - 51.3| shrinks (units)
+        target: 51.3,
+        toneHz: 432,
+        wrongFirst: [{ id: 'nova_27', speaker: 'nova', text: 'Every node listens to where it stands. London stands at fifty-one point five, north.' }] as Line[],
+        success: [{ id: 'nova_28', speaker: 'nova', text: 'Signal clean. Node two is awake.' }] as Line[],
+      },
+      queensland: {
+        name: 'QUEENSLAND', lat: -27.47, lon: 153.03, title: 'NODE 03 — HANDSHAKE',
+        enter: [{ id: 'nova_29', speaker: 'nova', text: "Queensland. It's still calling out. Listen." }] as Line[],
+        morse: '-. --- ...- .-',
+        unitMs: 110, // dot length; dash = 3 units, gaps per standard Morse
+        loopGapMs: 1800,
+        toneHz: 640,
+        replayLabel: 'REPLAY',
+        answer: 'nova',
+        wrongFirst: [{ id: 'nova_30', speaker: 'nova', text: 'Use the card. Short and long. Dots and dashes.' }] as Line[],
+        success: [{ id: 'nova_31', speaker: 'nova', text: "...Nova. He named me. I didn't know." }] as Line[],
+      },
+    },
+    nodeOrder: ['bangalore', 'london', 'queensland'] as const,
+
+    // Small UI labels for the Act 3 panels.
+    ui: {
+      back: '← BACK TO GLOBE',
+      relayNodesLabel: 'RELAY NODES',
+      meshLabel: 'MESH LINK',
+      alphabetTitle: 'ALPHABET INDEX',
+      morseTitle: 'MORSE REFERENCE',
+      readoutLabel: 'FREQUENCY',
+      signalLabel: 'INCOMING SIGNAL',
+      glitchChars: '▒░#%@&?/',
+      networkLog: 'ALL RELAY NODES AWAKE — MESH LINK: GLOBAL',
+    },
+
+    personnelTitle: 'RECOVERED PERSONNEL FILE',
+    closeLabel: 'CLOSE',
+    filesLabel: 'FILES',
+    personnel: {
+      bangalore: {
+        header: 'VISHAL K. — BANGALORE — PLANTED 2020 — COORDINATES 12.97° N',
+        entries: [
+          'Tech & Operations Lead, Rams Interiors (2020–2022): digitised operations, project tracking, vendor coordination and reporting.',
+          'Growth & Revenue Operations Lead, Keshav Interiors (2025): contributed to 120% year-on-year revenue growth; moved sales and operations to digital-first workflows.',
+          'Founder & Product Lead, Rivl (2025–2026): built a revenue intelligence platform unifying competitive and deal intelligence — AI pipelines for competitor discovery, web ingestion, LLM analysis and win/loss. Concept to launch in 9 months.',
+          "What didn't work: [PLACEHOLDER]",
+          'What I learned: [PLACEHOLDER]',
+        ],
+      },
+      london: {
+        header: 'VISHAL K. — LONDON — PLANTED 2022 — COORDINATES 51.5° N',
+        entries: [
+          'MS Engineering Management, Kingston University London (2022–2023). Ran founder meetups connecting students with the London startup ecosystem.',
+          "Commercial Analyst, Sainsbury's / Argos (2023–2025): commercial planning for a ~£700M category in an 18-person team; coordinated operations across Europe, China and India; automated recurring analysis and reporting, later adopted across multiple categories.",
+        ],
+      },
+      queensland: {
+        header: 'VISHAL K. — QUEENSLAND (REMOTE) — PLANTED 2024 — COORDINATES 27.47° S',
+        entries: [
+          'Product Management Associate, Green KPI (2024): early-stage project-management software for sustainability-focused industries; turned customer and business requirements into product workflows.',
+        ],
+      },
+    },
+    personnelCharMs: 6,
+
+    finalRelay: {
+      intro: [
+        { id: 'nova_33', speaker: 'nova', text: 'Three nodes. One network.' },
+        { id: 'nova_34', speaker: 'nova', text: 'Speak their frequencies, in the order Vishal planted them.' },
+      ] as Line[],
+      answer: [12.97, 51.5, 27.47], // order matters; sign/"south" ignored
+      tolerance: 0.5,
+      wrongOrder: [{ id: 'nova_35', speaker: 'nova', text: 'Wrong order. Check when he planted them.' }] as Line[],
+      success: [{ id: 'nova_36', speaker: 'nova', text: '...Network live.' }] as Line[],
+      banner: 'NETWORK LIVE',
+      arcDrawMs: 2200,
+      waveMs: 2500,
+    },
+  },
+
+  // ===================== ACT 4: TRANSMISSION =====================
+  act4: {
+    silenceMs: 2000,
+    coming: [{ id: 'nova_37', speaker: 'nova', text: "...Wait. Something's coming through." }] as Line[],
+    banner: '⚠ INCOMING TRANSMISSION — ORIGIN: VISHAL K. — STATUS: ALIVE',
+    incoming: [{ id: 'nova_38', speaker: 'nova', text: 'Incoming transmission. Origin: Vishal K. Status... alive.' }] as Line[],
+    letterTitle: 'RECOVERED TRANSMISSION',
+    letter: '[PLACEHOLDER — I\'ll paste my message]',
+    letterCharMs: 28,
+    skipTypingLabel: 'Skip typing',
+    ended: [{ id: 'nova_39', speaker: 'nova', text: 'Transmission ended. The channel is still open. Do you want to reply?' }] as Line[],
+    nameLabel: 'Your name (optional — you can type this one)',
+    namePlaceholder: 'Name',
+    sent: [
+      { id: 'nova_40', speaker: 'nova', text: "Message sent across the network. They'll hear you." },
+      { id: 's16', speaker: 'survivor', text: "...We're not alone anymore." },
+    ] as Line[],
+    sentLog: 'REPLY TRANSMITTED ✓',
+    continueLabel: 'Continue →',
+    supabaseTable: 'replies',
+  },
+
+  // ===================== FINAL SCREEN (#final) =====================
+  final: {
+    hash: '#final',
+    headline: 'The nodes were fiction. The work is real.',
+    subline: "I'm Vishal Kumar. I build AI systems and growth engines. Bengaluru.",
+    aboutTitle: 'About me',
+    about: '[PLACEHOLDER]',
+    experienceTitle: 'Experience',
+    experience: [
+      { when: '2020–2022', where: 'Bangalore', role: 'Tech & Operations Lead', org: 'Rams Interiors', text: 'Digitised operations, project tracking, vendor coordination and reporting.' },
+      { when: '2022–2023', where: 'London', role: 'MS Engineering Management', org: 'Kingston University London', text: 'Ran founder meetups connecting students with the London startup ecosystem.' },
+      { when: '2023–2025', where: 'London', role: 'Commercial Analyst', org: "Sainsbury's / Argos", text: 'Commercial planning for a ~£700M category in an 18-person team; coordinated operations across Europe, China and India; automated recurring analysis and reporting, later adopted across multiple categories.' },
+      { when: '2024', where: 'Queensland (remote)', role: 'Product Management Associate', org: 'Green KPI', text: 'Early-stage project-management software for sustainability-focused industries; turned customer and business requirements into product workflows.' },
+      { when: '2025', where: 'Bangalore', role: 'Growth & Revenue Operations Lead', org: 'Keshav Interiors', text: 'Contributed to 120% year-on-year revenue growth; moved sales and operations to digital-first workflows.' },
+      { when: '2025–2026', where: 'Bangalore', role: 'Founder & Product Lead', org: 'Rivl', text: 'Built a revenue intelligence platform unifying competitive and deal intelligence — AI pipelines for competitor discovery, web ingestion, LLM analysis and win/loss. Concept to launch in 9 months.' },
+    ],
+    projectsTitle: 'Projects',
+    projects: [
+      { name: 'Rivl', text: 'AI revenue intelligence platform (competitive + deal intelligence).', link: '#' },
+      { name: 'Enrich', text: 'Free, bring-your-own-key AI lead-enrichment tool.', link: '#' },
+      { name: 'COBOL Radar', text: 'AI top-of-funnel GTM intelligence with multi-stage research, signal validation and lead scoring.', link: '#' },
+      { name: 'DI Engine', text: 'Document intelligence engine that learns client-specific schemas and formats from past documents.', link: '#' },
+    ],
+    projectLinkLabel: 'View →',
+    wisprTitle: "How I'd grow Wispr in India",
+    wispr: [
+      { title: '[PLACEHOLDER]', text: '[PLACEHOLDER]' },
+      { title: '[PLACEHOLDER]', text: '[PLACEHOLDER]' },
+      { title: '[PLACEHOLDER]', text: '[PLACEHOLDER]' },
+    ],
+    buttons: [
+      { label: 'Resume', href: '#' },
+      { label: 'LinkedIn', href: '#' },
+      { label: 'Email', href: '#' },
+    ],
+    footer: 'Built by voice with Wispr Flow.',
+    playAgain: '↺ Play again',
+  },
 };
 
 export type ArtifactId = keyof typeof CONFIG.evidence;

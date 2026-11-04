@@ -56,6 +56,8 @@ export class Monitor {
   private clockEl: HTMLElement;
   private signalBars: HTMLElement[] = [];
   private hintEl: HTMLElement;
+  private voiceHint: HTMLElement;
+  private audioLogEl: HTMLElement;
   private isLocked: () => boolean = () => false;
   private clockBase = 0;
   private clockT0 = Date.now();
@@ -94,6 +96,7 @@ export class Monitor {
     h('div', 'panel-title', logCol).textContent = T.logTitle;
     this.log = h('div', 'term-log', logCol);
     this.logInner = h('div', 'term-log-inner', this.log);
+    this.audioLogEl = h('div', 'term-audiolog', logCol);
 
     // right column: evidence tiles (when unlocked) above the system status rows
     const side = h('div', 'term-side', main);
@@ -104,6 +107,8 @@ export class Monitor {
 
     const bottom = h('div', 'term-bottom', this.root);
     this.warnEl = h('div', 'term-warn', bottom);
+    this.voiceHint = h('div', 'term-hint', bottom);
+    this.voiceHint.hidden = true;
     this.promptRow = h('div', 'term-prompt', bottom);
     h('span', 'term-prompt-label', this.promptRow).textContent = T.promptLabel;
     // The voice input is appended here by VoiceInput; CSS order places meter + hint after it.
@@ -147,6 +152,7 @@ export class Monitor {
     this.meter.tick(now);
     const locked = this.isLocked();
     this.promptRow.classList.toggle('locked', locked);
+    this.voiceHint.classList.toggle('dim', locked);
     const hint = locked ? CONFIG.terminal.promptTransmitting : CONFIG.terminal.promptHint;
     if (this.hintEl.textContent !== hint) this.hintEl.textContent = hint;
     if (Math.floor(now / 260) !== this.lastSec) {
@@ -171,6 +177,18 @@ export class Monitor {
       }
       this.scheduleGlitchLine();
     }, lo + Math.random() * (hi - lo));
+  }
+
+  /** The amber hint line above the prompt bar. null hides it. */
+  setHint(text: string | null) {
+    this.voiceHint.hidden = !text;
+    this.voiceHint.textContent = text ?? '';
+  }
+
+  /** Pulsing "audio log" tag at the log bottom while a line without an audio file plays. null hides it. */
+  setAudioLog(text: string | null) {
+    this.audioLogEl.textContent = text ?? '';
+    this.audioLogEl.classList.toggle('on', !!text);
   }
 
   clear() { this.logInner.replaceChildren(); }

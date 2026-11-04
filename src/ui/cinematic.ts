@@ -149,6 +149,18 @@ export class Cinematic {
     };
     requestAnimationFrame(poll);
 
+    if (CONFIG.videoVoiceBaked) {
+      // Voice is in the video: full volume, no ducking, no narration lines.
+      try {
+        await abortable(videoDone, signal);
+        if (failed) await sleep(CONFIG.timing.noAudioMinMs, signal);
+      } catch (e) {
+        if (token === this.scene) this.hide();
+        throw e;
+      }
+      return;
+    }
+
     try {
       const narration = (async () => {
         await abortable(narrationGo, signal);

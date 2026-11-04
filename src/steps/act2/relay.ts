@@ -27,7 +27,6 @@ export const relayStep: Step = {
     relay.showNodes();
     await g.dialogue.play(A.nodes, g.signal);
 
-    await monitor.typeLines([A.prompt], { className: 'faint' });
     relay.complete = true;
     g.goto('archive');
   },

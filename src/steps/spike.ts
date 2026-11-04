@@ -28,8 +28,6 @@ export const spikeStep: Step = {
     monitor.flashRed(false);
     monitor.setLight('amber-pulse');
     monitor.applyStage('listening');
-    monitor.clear();
-    await monitor.typeLines([CONFIG.screens.wakeHint], { className: 'faint' });
     g.goto('wake');
   },
 };

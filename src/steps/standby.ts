@@ -16,7 +16,7 @@ export const standbyStep: Step = {
     }
     await monitor.typeLines(CONFIG.screens.standby);
     await g.dialogue.play(CONFIG.dialogue.standby, g.signal);
-    await monitor.typeLines([CONFIG.screens.standbyHint], { className: 'faint' });
+    monitor.setHint(CONFIG.hints.wake);
     unlock(g);
   },
   onVoice(_text, _norm, g) {

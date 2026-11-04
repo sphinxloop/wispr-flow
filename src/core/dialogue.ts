@@ -65,8 +65,14 @@ export class Dialogue {
       if (playing) {
         await Promise.all([playing, typing]);
       } else {
-        const ms = CONFIG.timing.noAudioBaseMs + line.text.length * CONFIG.timing.noAudioPerCharMs;
-        await Promise.all([sleep(ms, signal), typing]);
+        const T = CONFIG.timing;
+        const ms = Math.max(T.noAudioMinMs, T.noAudioBaseMs + line.text.length * T.noAudioPerCharMs);
+        this.monitor.setAudioLog(`${CONFIG.audioLogLabel} · ${CONFIG.audioLogSpeakers[line.speaker]}`);
+        try {
+          await Promise.all([sleep(ms, signal), typing]);
+        } finally {
+          this.monitor.setAudioLog(null);
+        }
       }
     } finally {
       if (nova) this.monitor.core.endSpeak(speakTok);

@@ -1,6 +1,8 @@
 import { CONFIG } from '../config';
 import { h, sleep } from '../core/util';
 import { Globe } from './globe';
+import { NodePanel } from './nodePanel';
+import { PersonnelFile } from './personnelFile';
 import type { Monitor } from './monitor';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -15,11 +17,61 @@ export class RelayPanel {
   private statusEl: HTMLElement | null = null;
   private globeCard: HTMLElement | null = null;
   private globe: Globe | null = null;
+  private cleanups: Array<() => void> = [];
+  readonly personnel: PersonnelFile;
+  readonly nodePanel: NodePanel;
 
-  constructor(private monitor: Monitor) {}
+  constructor(private monitor: Monitor) {
+    this.personnel = new PersonnelFile(monitor.root);
+    this.nodePanel = new NodePanel(() => this.wrap);
+  }
+
+  /** The live globe, if one is on screen. */
+  get liveGlobe(): Globe | null { return this.globe; }
+  /** The card holding the globe canvas (for overlays such as the FILES button). */
+  get globeHost(): HTMLElement | null { return this.globeCard; }
+
+  /** Run `fn` when everything is hidden (Act 3 audio, timers). */
+  onReset(fn: () => void) { this.cleanups.push(fn); }
+
+  /** Clean main area: sealed file, globe, Act 3 panels and overlays gone; globe loop and Act 3 audio stopped. */
+  hideAll() { this.reset(); }
+
+  /**
+   * Act 3 scene: make sure the globe is up (the sealed file card slides away) and pick a layout.
+   * 'fill' = globe fills the area; 'puzzle' = globe shrinks to one side for a node panel.
+   */
+  actScene(layout: 'fill' | 'puzzle'): Globe {
+    const extra = this.monitor.mainExtra;
+    extra.classList.add('on');
+    if (!this.wrap) this.wrap = h('div', 'relay', extra);
+    this.wrap.classList.add('act3');
+    if (this.fileCard) {
+      const f = this.fileCard;
+      f.classList.add('leaving');
+      window.setTimeout(() => f.remove(), 800);
+      this.fileCard = this.stampEl = this.statusEl = null;
+    }
+    if (!this.globe) {
+      this.globeCard = h('div', 'relay-card relay-globe', this.wrap);
+      const canvas = h('canvas', 'globe-canvas', this.globeCard);
+      const A = CONFIG.act3;
+      this.globe = new Globe(canvas, A.nodeOrder.map((k) => ({ name: A.nodes[k].name, lat: A.nodes[k].lat, lon: A.nodes[k].lon })));
+      this.globe.startDraw(true);
+      this.globe.showNodes(true);
+    }
+    this.wrap.classList.toggle('fill', layout === 'fill');
+    this.wrap.classList.toggle('puzzle', layout === 'puzzle');
+    this.globe.setFill(layout === 'fill');
+    this.complete = true;
+    return this.globe;
+  }
 
   /** Remove everything and stop the globe loop. */
   reset() {
+    this.cleanups.splice(0).forEach((f) => { try { f(); } catch (e) { console.error(e); } });
+    this.personnel.close();
+    this.nodePanel.close();
     this.globe?.stop();
     this.globe = null;
     this.wrap?.remove();

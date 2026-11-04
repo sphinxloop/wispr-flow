@@ -12,29 +12,28 @@ export const archiveStep: Step = {
     monitor.applyStage('relay');
     // Debug jump (or an interrupted relay): show file, stamp and globe at once.
     if (!relay.complete) relay.buildInstant();
-    if (!monitor.contains(CONFIG.act2.prompt)) monitor.appendLine(CONFIG.act2.prompt, 'faint');
+    monitor.setHint(CONFIG.hints.archive);
     unlock(g);
   },
   async onVoice(_text, normalized, g) {
-    const { monitor, relay, effects } = g.ui;
+    const { monitor, relay } = g.ui;
     const A = CONFIG.act2;
     const words = normalized.split(' ');
     g.inputLocked = true;
 
     if (!CONFIG.answers2.archiveWords.every((w) => words.includes(w))) {
-      // Nova, text only: no audio lookup, no dialogue.play.
-      await monitor.typeLines([CONFIG.screens.novaPrefix + A.wrong]);
+      await g.dialogue.play(A.wrong, g.signal);
       unlock(g);
       return;
     }
 
+    monitor.setHint(null);
     g.sfx.unlock();
     await Promise.all([
       relay.unseal(g.signal),
       monitor.typeLines([A.relayFile.unsealed], { className: 'success' }),
     ]);
     await sleep(A.fx.unsealedPauseMs, g.signal);
-    await effects.fadeToBlack(CONFIG.timing.endFadeMs);
-    g.goto('end');
+    g.goto('act3Intro'); // no fade: the terminal stays
   },
 };

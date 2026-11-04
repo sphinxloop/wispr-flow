@@ -14,6 +14,7 @@ export const evidenceStep: Step = {
     if (!monitor.contains(CONFIG.screens.authPrompt)) {
       monitor.setLines([...CONFIG.screens.online, CONFIG.screens.authPrompt]);
     }
+    monitor.setHint(CONFIG.hints.auth);
     artifacts.setIntensity('normal');
     artifacts.show();
     unlock(g);

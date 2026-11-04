@@ -11,6 +11,8 @@ import type { Cinematic } from '../ui/cinematic';
 import type { RelayPanel } from '../ui/relayPanel';
 import { isAbort } from './util';
 
+export type NodeKey = 'bangalore' | 'london' | 'queensland';
+
 export interface UI {
   screens: Screens;
   monitor: Monitor;
@@ -29,6 +31,9 @@ export interface GameState {
   fans: Handle | null;
   fromBlack: boolean; // the monitor should fade in from black
   booted: boolean; // the boot sequence has been typed once
+  solved: Set<NodeKey>; // Act 3 relay nodes woken so far
+  act3IntroDone: boolean; // the Act 3 intro dialogue has played once
+  nodeWrong: Record<NodeKey, number>; // wrong answers per node
 }
 
 const newState = (): GameState => ({
@@ -38,6 +43,9 @@ const newState = (): GameState => ({
   fans: null,
   fromBlack: false,
   booted: false,
+  solved: new Set(),
+  act3IntroDone: false,
+  nodeWrong: { bangalore: 0, london: 0, queensland: 0 },
 });
 
 export interface Step {
@@ -76,6 +84,7 @@ export class Game {
   get stepIds(): string[] { return [...this.steps.keys()]; }
 
   register(step: Step): void { this.steps.set(step.id, step); }
+  has(id: string): boolean { return this.steps.has(id); }
   onChange(fn: (id: string) => void): void { this.listeners.push(fn); }
 
   goto(id: string): void {
@@ -107,6 +116,7 @@ export class Game {
     this.ui.artifacts.hide();
     this.ui.subtitles.hide();
     this.ui.monitor.resetMode();
+    this.ui.monitor.setHint(null); // voice steps set their own hint
     this.listeners.forEach((f) => f(id));
     this.run(() => step.enter(this));
   }
