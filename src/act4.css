@@ -86,3 +86,22 @@
   .tx-btn.primary { animation: none; }
   .tx-body { scroll-behavior: auto; }
 }
+
+/* ==== film-style ending: blank black screen, last line types out ==== */
+.movie-ending {
+  position: fixed; inset: 0; z-index: 5000; background: #000;
+  display: flex; align-items: center; justify-content: center; padding: 24px;
+  animation: movie-in 1.2s ease forwards; opacity: 0;
+}
+@keyframes movie-in { to { opacity: 1; } }
+.movie-ending-text {
+  max-width: 900px; text-align: center;
+  font: 400 clamp(22px, 3.2vw, 40px)/1.4 Georgia, 'Times New Roman', serif;
+  font-style: italic; letter-spacing: 0.02em; color: rgba(245, 238, 225, 0.92);
+}
+.movie-ending-text:not(.done)::after {
+  content: ''; display: inline-block; width: 0.08em; height: 1em; margin-left: 0.08em;
+  background: currentColor; vertical-align: -0.12em; animation: movie-caret 1s steps(1) infinite;
+}
+@keyframes movie-caret { 50% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .movie-ending { animation: none; opacity: 1; } }

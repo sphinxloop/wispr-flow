@@ -48,14 +48,10 @@ export class FinalScreen {
       const card = h('article', 'final-card', grid);
       h('h3', 'final-card-title', card).textContent = p.name;
       h('p', 'final-card-text', card).textContent = p.text;
-      const a = h('a', 'final-card-link', card);
-      if (p.link && p.link !== '#') {
+      if (p.link && p.link !== '#') { // no link yet: show nothing
+        const a = h('a', 'final-card-link', card);
         a.textContent = F.projectLinkLabel;
         this.externalise(a, p.link);
-      } else {
-        a.className = 'final-card-link soon';
-        a.removeAttribute('href');
-        a.textContent = 'Link coming soon';
       }
     }
 

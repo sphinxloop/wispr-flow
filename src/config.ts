@@ -323,7 +323,7 @@ export const CONFIG = {
         readoutEmpty: '---.--',
         min: 51.0, max: 51.6, // accepted range
         dialMin: 0, dialMax: 100, // dial scale shown
-        staticGain: 0.22, // loud static at full distance
+        staticGain: 0.11, // static at full distance (halved so it never drowns out Nova)
         staticFalloff: 25, // static quietens as |said - 51.3| shrinks (units)
         target: 51.3,
         toneHz: 432,
@@ -377,7 +377,7 @@ export const CONFIG = {
       bangalore: {
         header: 'VISHAL K. — BANGALORE — PLANTED 2020 — COORDINATES 12.97° N',
         entries: [
-          'Founder & Product Lead, Rivl (2025–2026): built a revenue intelligence platform unifying competitive and deal intelligence — AI pipelines for competitor discovery, web ingestion, LLM analysis and win/loss. Concept to launch in 9 months.',
+          'Founder & Product Lead, RIVL (2025–2026): built a revenue intelligence platform unifying competitive and deal intelligence — AI pipelines for competitor discovery, web ingestion, LLM analysis and win/loss. Concept to launch in 9 months.',
           'Tech & Operations Lead, Rams Interiors (2020–2022): digitised operations, project tracking, vendor coordination and reporting.',
           'Growth & Revenue Operations Lead, Keshav Interiors (2025): contributed to 120% year-on-year revenue growth; moved sales and operations to digital-first workflows.',
         ],
@@ -437,7 +437,7 @@ export const CONFIG = {
         { t: 4.2, text: 'Which means someone found me. Good.' },
         { t: 7.7, text: 'Okay. Stepping out of the game for a second.' },
         { t: 11.0, text: "I'm Vishal. I've built AI products from scratch, run commercial operations in London, and grown a business in Bangalore." },
-        { t: 18.2, text: 'The last one I built was Rivl. It taught me the hard way that building the product is the easy part.' },
+        { t: 18.2, text: 'The last one I built was RIVL. It taught me the hard way that building the product is the easy part.' },
         { t: 24.3, text: "Getting people to care... is the actual job. That's what I want to do at Wispr." },
         { t: 29.5, text: "Here's what I'd start with in India." },
         { t: 31.6, style: 'list', text: 'ONE — India talks in Hinglish. So lean into it. Show people Flow handling the way we actually speak.' },
@@ -452,11 +452,10 @@ export const CONFIG = {
     },
 
     ended: [{ id: 'nova_39', speaker: 'nova', text: 'Transmission ended. The channel is still open. Do you want to reply?' }] as Line[],
-    replyLabel: 'Reply to Vishal',
-    replyHref: 'mailto:vjangir04@gmail.com?subject=Relay%20received%20%E2%80%94%20THE%20LAST%20CHANNEL',
     continueLabel: 'Continue →',
     outro: [{ id: 's16', speaker: 'survivor', text: "...We're not alone anymore." }] as Line[],
-    toFinalFadeMs: 1500,
+    // After Continue: blank black screen, then the survivor's line types out with its audio (film ending).
+    ending: { fadeInMs: 1200, blankMs: 900, charMs: 70, holdMs: 2200 },
   },
 
   // ===================== FINAL SCREEN (#final) =====================
@@ -465,17 +464,17 @@ export const CONFIG = {
     headline: 'The nodes were fiction. The work is real.',
     subline: "I'm Vishal Kumar. I build AI products and growth engines. Bengaluru.",
     experienceTitle: 'Experience',
-    experience: [
-      { when: '2020–2022', where: 'Bangalore', role: 'Tech & Operations Lead', org: 'Rams Interiors', text: 'Digitised operations, project tracking, vendor coordination and reporting.' },
-      { when: '2022–2023', where: 'London', role: 'MS Engineering Management', org: 'Kingston University London', text: 'Ran founder meetups connecting students with the London startup ecosystem.' },
+    experience: [ // newest first
+      { when: '2025–2026', where: 'Bangalore', role: 'Founder & Product Lead', org: 'RIVL', text: 'Built a revenue intelligence platform unifying competitive and deal intelligence — AI pipelines for competitor discovery, web ingestion, LLM analysis and win/loss. Concept to launch in 9 months.' },
+      { when: '2025', where: 'Bangalore', role: 'Growth & Revenue Operations Lead', org: 'Keshav Interiors', text: 'Contributed to 120% year-on-year revenue growth; moved sales and operations to digital-first workflows.' },
       { when: '2023–2025', where: 'London', role: 'Commercial Analyst', org: "Sainsbury's / Argos", text: 'Commercial planning for a ~£700M category in an 18-person team; coordinated operations across Europe, China and India; automated recurring analysis and reporting, later adopted across multiple categories.' },
       { when: '2024', where: 'Queensland (remote)', role: 'Product Management Associate', org: 'Green KPI', text: 'Early-stage project-management software for sustainability-focused industries; turned customer and business requirements into product workflows.' },
-      { when: '2025', where: 'Bangalore', role: 'Growth & Revenue Operations Lead', org: 'Keshav Interiors', text: 'Contributed to 120% year-on-year revenue growth; moved sales and operations to digital-first workflows.' },
-      { when: '2025–2026', where: 'Bangalore', role: 'Founder & Product Lead', org: 'Rivl', text: 'Built a revenue intelligence platform unifying competitive and deal intelligence — AI pipelines for competitor discovery, web ingestion, LLM analysis and win/loss. Concept to launch in 9 months.' },
+      { when: '2022–2023', where: 'London', role: 'MS Engineering Management', org: 'Kingston University London', text: 'Ran founder meetups connecting students with the London startup ecosystem.' },
+      { when: '2020–2022', where: 'Bangalore', role: 'Tech & Operations Lead', org: 'Rams Interiors', text: 'Digitised operations, project tracking, vendor coordination and reporting.' },
     ],
     projectsTitle: 'Projects',
     projects: [
-      { name: 'Rivl', text: 'AI revenue intelligence platform (competitive + deal intelligence).', link: '#' },
+      { name: 'RIVL', text: 'AI revenue intelligence platform (competitive + deal intelligence).', link: '#' },
       { name: 'Enrich', text: 'Free, bring-your-own-key AI lead-enrichment tool.', link: '#' },
       { name: 'COBOL Radar', text: 'AI top-of-funnel GTM intelligence with multi-stage research, signal validation and lead scoring.', link: '#' },
       { name: 'DI Engine', text: 'Document intelligence engine that learns client-specific schemas and formats from past documents.', link: '#' },
@@ -491,8 +490,8 @@ export const CONFIG = {
     replayingLabel: '■ Stop transmission',
     buttons: [
       { label: 'Email', href: 'mailto:vjangir04@gmail.com' },
-      { label: 'Resume', href: '#' }, // TODO: add link
-      { label: 'LinkedIn', href: '#' }, // TODO: add link
+      { label: 'Resume', href: 'https://drive.google.com/file/d/12KClmxIJsPKr7NeJpWZy7mrvKZghU_e-/view?usp=sharing' },
+      { label: 'LinkedIn', href: 'https://www.linkedin.com/in/vishalkumarsantkumar/' },
     ],
     footer: 'Built by voice with Wispr Flow.',
     playAgain: '↺ Play again',
