@@ -19,6 +19,7 @@ export const act2VideoStep: Step = {
       startAt: A.videoA.startAt,
       lines: [...A.videoA.lines, ...A.videoB.lines],
       after: A.videoB.after,
+      cues: CONFIG.act2Cues,
       signal: g.signal,
     });
     effects.clearBlack(); // the player already covers the screen

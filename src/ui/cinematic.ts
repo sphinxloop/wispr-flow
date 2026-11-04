@@ -1,7 +1,8 @@
 import { CONFIG } from '../config';
-import type { Line } from '../config';
+import type { Cue, Line } from '../config';
 import type { AudioEngine } from '../core/audio';
 import type { Dialogue } from '../core/dialogue';
+import type { Subtitles } from './subtitles';
 import { abortError, h, sleep } from '../core/util';
 
 export interface SceneOpts {
@@ -11,6 +12,8 @@ export interface SceneOpts {
   lines: Line[];
   /** Played on the held last frame once both video and `lines` are done. */
   after?: Line[];
+  /** Subtitle cues keyed to the video's currentTime. */
+  cues?: Cue[];
   signal: AbortSignal;
 }
 
@@ -35,7 +38,7 @@ export class Cinematic {
   private rampId = 0;
   private preloads: HTMLVideoElement[] = [];
 
-  constructor(app: HTMLElement, private audio: AudioEngine, private dialogue: Dialogue) {
+  constructor(app: HTMLElement, private audio: AudioEngine, private dialogue: Dialogue, private subtitles: Subtitles) {
     this.root = h('div', 'cine', app);
     this.video = h('video', 'cine-video', this.root);
     this.video.playsInline = true;
@@ -78,6 +81,7 @@ export class Cinematic {
   /** Pause and hide immediately. Safe to call any time. */
   hide() {
     this.scene++;
+    this.subtitles.hide();
     this.rampId++;
     this.video.pause();
     this.video.onended = null;
@@ -139,6 +143,19 @@ export class Cinematic {
         v.muted = true; // autoplay policy: retry silently
         v.play().catch(fail);
       });
+    }
+
+    // Subtitle cues follow the video clock (act2.mp4 only).
+    if (o.cues?.length) {
+      const cueTick = () => {
+        if (token !== this.scene || signal.aborted || v.ended) return this.subtitles.hide();
+        const t = v.currentTime;
+        const cue = o.cues!.find((c) => t >= c.start && t < c.end);
+        if (cue) this.subtitles.show(cue.text, cue.speaker ?? 'survivor', { video: true, prefix: true });
+        else this.subtitles.hide();
+        requestAnimationFrame(cueTick);
+      };
+      requestAnimationFrame(cueTick);
     }
 
     // Trigger narration when playback reaches startAt (rAF poll; timeupdate is too coarse).

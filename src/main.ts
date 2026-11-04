@@ -53,7 +53,7 @@ const artifacts = new Artifacts(monitor.evidencePanel, monitor.evidenceList, app
 const subtitles = new Subtitles(app);
 const input = new VoiceInput(monitor.promptRow, monitor.warnEl, sfx, () => game.inputLocked);
 const dialogue = new Dialogue(audio, subtitles, monitor);
-const cinematic = new Cinematic(app, audio, dialogue);
+const cinematic = new Cinematic(app, audio, dialogue, subtitles);
 const relay = new RelayPanel(monitor);
 
 game.ui = { screens, monitor, effects, artifacts, subtitles, cinematic, relay };

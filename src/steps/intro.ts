@@ -48,7 +48,7 @@ export const introStep: Step = {
       if (done || signal.aborted) return;
       const t = v.currentTime;
       const cue = CONFIG.introCues.find((c) => t >= c.start && t < c.end);
-      if (cue) subtitles.show(cue.text, 'survivor');
+      if (cue) subtitles.show(cue.text, cue.speaker ?? 'survivor', { video: true, prefix: true });
       else subtitles.hide();
       requestAnimationFrame(tick);
     };

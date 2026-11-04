@@ -12,6 +12,8 @@ export interface PlayOpts {
   typeOnTerminal?: boolean;
   /** Hold time when the line has no audio file (replaces the text-length timing). */
   noAudioMs?: number;
+  /** false: never show a subtitle (the caller already shows the text). Default true. */
+  subtitles?: boolean;
 }
 
 function distortionCurve(amount: number): Float32Array<ArrayBuffer> {
@@ -38,7 +40,7 @@ export class Dialogue {
     try {
       for (const line of lines) {
         if (signal.aborted) throw abortError();
-        await this.playLine(line, signal, opts.typeOnTerminal !== false, opts.noAudioMs);
+        await this.playLine(line, signal, opts.typeOnTerminal !== false, opts.noAudioMs, opts.subtitles !== false);
         await sleep(CONFIG.timing.lineGapMs, signal);
       }
     } finally {
@@ -47,12 +49,12 @@ export class Dialogue {
     }
   }
 
-  private async playLine(line: Line, signal: AbortSignal, typeOnTerminal: boolean, noAudioMs?: number): Promise<void> {
+  private async playLine(line: Line, signal: AbortSignal, typeOnTerminal: boolean, noAudioMs?: number, subs = true): Promise<void> {
     const buffer = await this.load(line.id, signal);
     if (signal.aborted) throw abortError();
 
     const nova = line.speaker === 'nova';
-    this.subtitles.show(line.text, line.speaker);
+    if (subs && CONFIG.subtitleSpeakers.includes(line.speaker)) this.subtitles.show(line.text, line.speaker);
     let typing: Promise<void> = Promise.resolve();
     if (nova) {
       const full = CONFIG.screens.novaPrefix + line.text;

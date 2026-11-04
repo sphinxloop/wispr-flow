@@ -57,7 +57,7 @@ export const act4EndStep: Step = {
     tx.finish();
 
     await g.dialogue.play(A.ended, g.signal);
-    gPlay = (signal) => g.dialogue.play(A.outro, signal).catch(() => {});
+    gPlay = (signal) => g.dialogue.play(A.outro, signal, { subtitles: false }).catch(() => {});
 
     const cont = tx.addButton(A.continueLabel, () => {
       void (async () => {

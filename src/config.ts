@@ -3,7 +3,7 @@
 
 export type Speaker = 'survivor' | 'nova';
 export interface Line { id: string; speaker: Speaker; text: string }
-export interface Cue { start: number; end: number; text: string } // seconds
+export interface Cue { start: number; end: number; text: string; speaker?: Speaker } // seconds; speaker defaults to survivor
 export type CoreState = 'dormant' | 'alert' | 'online' | 'speaking' | 'surge' | 'hidden';
 export type Tone = 'dim' | 'ok' | 'warn' | 'bad' | 'alert'; // alert = red + blinking
 export interface StatusRow { key: string; label: string; value: string; tone: Tone; bar?: boolean }
@@ -12,7 +12,12 @@ export interface Stage { core: CoreState; status?: Record<string, [value: string
 export const CONFIG = {
   title: 'THE LAST CHANNEL',
   // Master switch for ALL subtitles (intro cues + dialogue). Off for now.
-  subtitlesEnabled: false,
+  // Subtitles: shown for the two videos (introCues, act2Cues) and for survivor lines in the game only.
+  // Nova's in-game lines type into the log and the transmission types in its own panel, so they get none.
+  subtitlesEnabled: true,
+  subtitleSpeakers: ['survivor'] as Speaker[], // in-game dialogue speakers that get subtitles
+  subtitleFadeMs: 150,
+  subtitleNovaPrefix: 'NOVA:', // shown in amber before Nova's video cues
   // The Act 2 videos already contain Nova's voice: skip nova_13–15 and s14 there,
   // play the videos at full volume and continue when each ends.
   videoVoiceBaked: true,
@@ -30,10 +35,22 @@ export const CONFIG = {
 
   // Intro subtitles (seconds into intro.mp4). Adjust freely.
   introCues: [
-    { start: 1.0, end: 3.5, text: "...head's pounding." },
-    { start: 5.0, end: 7.5, text: 'How long was I out?' },
-    { start: 10.0, end: 12.5, text: 'What... are those?' },
-    { start: 15.5, end: 18.0, text: "It's still running. How?" },
+    { start: 0.0, end: 2.9, text: "...head's pounding." },
+    { start: 3.0, end: 10.0, text: 'How long was I out?' },
+    { start: 12.0, end: 14.6, text: 'What... are those?' },
+    { start: 17.0, end: 20.0, text: "It's still running. How?" },
+  ] as Cue[],
+
+  // Subtitles for act2.mp4 (seconds into the video).
+  act2Cues: [
+    { start: 0.0, end: 2.0, speaker: 'nova', text: 'They came with one signal.' },
+    { start: 2.2, end: 7.0, speaker: 'nova', text: 'We call it the Silence.' },
+    { start: 7.1, end: 12.0, speaker: 'nova', text: 'It burned every power grid... and every keyboard on the planet.' },
+    { start: 12.0, end: 15.6, speaker: 'nova', text: 'Voice is the only interface that survived.' },
+    { start: 16.0, end: 19.4, speaker: 'nova', text: "Wispr Flow runs on what's left of the emergency mesh." },
+    { start: 19.5, end: 22.5, speaker: 'nova', text: "It's the last channel humanity has." },
+    { start: 22.5, end: 24.5, speaker: 'nova', text: "And it can't reach far enough." },
+    { start: 24.6, end: 30.0, speaker: 'survivor', text: 'So everyone out there... is just alone?' },
   ] as Cue[],
 
   timing: {
