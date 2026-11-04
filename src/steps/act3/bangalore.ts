@@ -18,16 +18,14 @@ export const act3BangaloreStep = makeNodeStep({
     h('div', 'np-label', body).textContent = N.noteLabel;
     h('p', 'np-note', body).textContent = N.note;
     h('div', 'np-cipher', body).textContent = N.cipher;
+    h('div', 'np-shiftclue', body).textContent = N.shiftClue;
 
     h('div', 'np-label', body).textContent = CONFIG.act3.ui.alphabetTitle;
     const strip = h('div', 'np-alpha', body);
-    const used = new Set(Array.from(N.cipher.toUpperCase()).map((c) => c.charCodeAt(0) - 65));
-    const prev = new Set(Array.from(used).map((i) => (i - N.shift + 26) % 26));
     for (let i = 0; i < 26; i++) {
-      const cell = h('div', 'np-alpha-cell' + (used.has(i) ? ' hot' : '') + (prev.has(i) ? ' prev' : ''), strip);
+      const cell = h('div', 'np-alpha-cell', strip);
       h('span', 'np-alpha-l', cell).textContent = String.fromCharCode(65 + i);
       h('span', 'np-alpha-n', cell).textContent = String(i + 1);
-      h('span', 'np-alpha-m', cell).textContent = used.has(i) ? `‹−${N.shift}` : '';
     }
 
     return { check: (raw) => letters(raw).includes(N.answer), stop: () => {} };

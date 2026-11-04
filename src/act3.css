@@ -1,16 +1,11 @@
 /* Act 3 puzzle additions: Bangalore strip, London label, Queensland slots, RECOVERED FREQUENCIES. */
 
-/* Bangalore */
+/* Bangalore: plain reference strip, nothing highlighted */
 .np-decrypt .np-note { text-align: center; opacity: 0.85; }
-.np-alpha-cell { position: relative; padding-bottom: 14px; }
-.np-alpha-cell:not(.hot):not(.prev) { opacity: 0.55; }
-.np-alpha-cell.hot {
-  border-color: var(--amber); background: rgba(255, 179, 71, 0.16);
-  box-shadow: 0 0 12px rgba(255, 170, 60, 0.7), inset 0 0 8px rgba(255, 170, 60, 0.3);
+.np-shiftclue {
+  text-align: center; font-size: 1.7em; letter-spacing: 0.22em; color: var(--amber); line-height: 1.1;
+  text-shadow: 0 0 10px rgba(255, 170, 60, 0.7);
 }
-.np-alpha-cell.hot .np-alpha-l { color: #fff2c8; text-shadow: 0 0 8px rgba(255, 200, 100, 0.9); }
-.np-alpha-cell.prev { opacity: 0.4; }
-.np-alpha-m { position: absolute; left: 0; right: 0; bottom: 1px; text-align: center; font-size: 0.6em; letter-spacing: 0; color: var(--amber); white-space: nowrap; }
 
 /* London */
 .np-city {
@@ -19,22 +14,38 @@
 }
 
 .np-tune { gap: 6px; }
-.np-tune .np-readout { font-size: 2.6em; }
-.np-tune .np-dial { max-height: 150px; }
+.np-tuner { display: flex; flex-direction: column; align-items: center; gap: 4px; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
+.np-tune .np-readout { font-size: 2.6em; color: var(--amber-soft, #ffd9a0); text-shadow: 0 0 12px rgba(255, 190, 100, 0.7); }
+.np-tune .np-readout.locked { color: #7dff7a; text-shadow: 0 0 14px rgba(120, 255, 110, 0.95), 0 0 34px rgba(60, 220, 60, 0.55); }
+.np-locked { min-height: 1.2em; font-size: 0.8em; letter-spacing: 0.16em; color: #7dff7a; text-align: center; opacity: 0; transition: opacity 0.3s; text-shadow: 0 0 8px rgba(120, 255, 110, 0.8); }
+.np-locked.on { opacity: 1; }
+.np-tune .np-dial { width: 100%; max-height: 150px; touch-action: none; cursor: grab; }
+.np-tune .np-dial:active { cursor: grabbing; }
+.dial-hit { fill: rgba(182, 255, 122, 0.03); stroke: none; }
+.np-tune .dial-needle { transition: none; }
+.np-tune .dial-needle.smooth { transition: transform 0.5s ease-out; }
+.np-tune .dial-needle-line { stroke-width: 4; }
+.np-tune-top { display: flex; align-items: center; justify-content: center; gap: 14px; }
+.np-tune-btn {
+  min-width: 56px; min-height: 44px; font: inherit; font-size: 1.3em; color: var(--amber); cursor: pointer; touch-action: manipulation;
+  background: rgba(255, 179, 71, 0.08); border: 1px solid rgba(255, 179, 71, 0.55); border-radius: 4px; user-select: none; -webkit-user-select: none;
+}
+.np-tune-btn:hover, .np-tune-btn:active { background: rgba(255, 179, 71, 0.25); }
 
-/* Queensland */
-.np-slots { display: flex; gap: 0.4em; max-width: 100%; }
-.np-slot {
-  width: 1.15em; height: 1.4em; display: inline-flex; align-items: center; justify-content: center; font-size: 1.9em; flex: none;
-  color: var(--amber); border-bottom: 2px solid rgba(255, 179, 71, 0.6); text-shadow: 0 0 10px rgba(255, 170, 60, 0.8);
+/* Queensland: the intercepted code stays on screen */
+.np-code {
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 26px; padding: 12px 6px;
+  font-family: ui-monospace, 'Courier New', monospace; border: 1px solid rgba(255, 179, 71, 0.3); border-radius: 4px; background: rgba(255, 179, 71, 0.04);
 }
-.np-slot.filled { animation: slotin 0.35s ease-out; }
-@keyframes slotin { from { transform: scale(1.6); opacity: 0; } to { transform: none; opacity: 1; } }
-.np-morse-cell { transition: background 0.08s, box-shadow 0.08s, border-color 0.08s; }
-.np-morse-cell.hot {
-  background: rgba(255, 179, 71, 0.28); border-color: var(--amber); box-shadow: 0 0 14px rgba(255, 170, 60, 0.9);
+.np-code-group { display: inline-flex; align-items: center; gap: 7px; height: 1.4em; }
+.np-sym {
+  display: inline-block; font-size: 0; color: transparent; background: rgba(255, 215, 150, 0.85); height: 0.6rem;
+  transition: background 0.06s, box-shadow 0.06s;
 }
-.np-morse-cell.hot b { color: #fff2c8; text-shadow: 0 0 8px rgba(255, 200, 100, 0.9); }
+.np-sym.dot { width: 0.6rem; border-radius: 50%; }
+.np-sym.dash { width: 1.6rem; border-radius: 0.3rem; }
+.np-sym.on { background: #fff6d8; box-shadow: 0 0 10px 3px rgba(255, 190, 90, 0.95), 0 0 24px 6px rgba(255, 150, 40, 0.5); }
+.np-code { font-size: 1.6em; }
 
 /* RECOVERED FREQUENCIES (bottom-left of the globe card) */
 .freq-panel {
@@ -60,7 +71,6 @@
   .freq-row { white-space: normal; line-height: 1.35; }
   .relay.puzzle .freq-panel { display: none; }
   .np-city { font-size: 1.15em; letter-spacing: 0.06em; }
-  .np-alpha-cell { padding-bottom: 11px; }
-  .np-alpha-m { font-size: 0.5em; }
-  .np-slot { font-size: 1.5em; }
+  .np-code { gap: 8px 16px; }
+  .np-shiftclue { font-size: 1.3em; }
 }

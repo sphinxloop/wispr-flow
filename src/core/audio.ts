@@ -474,15 +474,16 @@ export class Sfx {
   }
 
   /** One soft sine beep of `ms` (Morse). */
-  beep(hz: number, ms: number): void {
+  beep(hz: number, ms: number, vol = 1): void {
     const ctx = this.a.ensure();
     if (!ctx || !this.a.master) return;
     const t = ctx.currentTime;
     const d = ms / 1000;
     const g = ctx.createGain();
     g.gain.setValueAtTime(0.0001, t);
-    g.gain.linearRampToValueAtTime(0.16, t + 0.008);
-    g.gain.setValueAtTime(0.16, t + Math.max(0.008, d - 0.01));
+    const peak = 0.16 * vol;
+    g.gain.linearRampToValueAtTime(peak, t + 0.008);
+    g.gain.setValueAtTime(peak, t + Math.max(0.008, d - 0.01));
     g.gain.linearRampToValueAtTime(0, t + d);
     g.connect(this.a.master);
     const o = ctx.createOscillator();

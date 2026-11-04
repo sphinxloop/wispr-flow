@@ -252,9 +252,9 @@ export const CONFIG = {
     auth: 'Use Wispr Flow to speak the access code: TIME · DATE · CLEARANCE',
     archive: 'Hold your Wispr Flow key and say: OPEN THE ARCHIVE',
     chooseNode: 'Click a relay node on the globe to wake it',
-    bangalore: 'Count back one letter, then say the word with Wispr Flow',
-    london: 'Say the frequency with Wispr Flow',
-    queensland: 'Read the highlighted letters and say the call sign with Wispr Flow',
+    bangalore: 'Shift each letter back by one (−1), then say the word with Wispr Flow',
+    london: 'Turn the dial to find the signal, then say the frequency with Wispr Flow',
+    queensland: 'Decode the Morse with the reference card, then say the call sign with Wispr Flow',
     finalRelay: 'Say all three frequencies, oldest node first, with Wispr Flow',
     reply: 'Speak your reply to Vishal with Wispr Flow',
   },
@@ -290,6 +290,8 @@ export const CONFIG = {
     tryAgain: [{ id: 'nova_32', speaker: 'nova', text: "That's not it. Try again." }] as Line[],
     globe: {
       rotateDegPerSec: 6, // idle spin
+      draggable: true, // drag to rotate; idle spin resumes after resumeSpinMs
+      resumeSpinMs: 4000,
       focusMs: 1400, // rotate-to-node animation
       tiltDeg: -15,
       ocean: '#020604',
@@ -306,6 +308,7 @@ export const CONFIG = {
         note: 'THE WORD THAT HOLDS THEM TOGETHER:',
         cipher: 'SFMBZ', // each letter shifted forward by ONE
         shift: 1,
+        shiftClue: 'SHIFT: −1', // shown under the cipher; letters are NOT highlighted on the alphabet strip
         answer: 'relay',
         wrongFirst: [{ id: 'nova_24', speaker: 'nova', text: 'Vishal shifted his letters forward. Count back.' }] as Line[],
         success: [{ id: 'nova_25', speaker: 'nova', text: 'Decrypted. Relay. Node one is awake.' }] as Line[],
@@ -314,6 +317,8 @@ export const CONFIG = {
         name: 'LONDON', lat: 51.51, lon: -0.13, title: 'NODE 02 — TUNE',
         enter: [{ id: 'nova_26', speaker: 'nova', text: 'London. The node is buried in static. It needs a frequency.' }] as Line[],
         cityLabel: 'LONDON · 51.5° N',
+        // Manual tuner: drag the dial (or use the ◀ ▶ buttons / mouse wheel). Voice still wakes the node.
+        tuner: { min: 40, max: 60, start: 43.0, step: 0.1, bigStep: 1, lockedLabel: 'SIGNAL LOCKED — SAY THE FREQUENCY', lockHoldMs: 600 },
         note: 'EVERY NODE LISTENS TO WHERE IT STANDS.',
         readoutEmpty: '---.--',
         min: 51.0, max: 51.6, // accepted range
@@ -331,9 +336,10 @@ export const CONFIG = {
         morse: '-. --- ...- .-',
         unitMs: 110, // dot length; dash = 3 units, gaps per standard Morse
         loopGapMs: 1800,
+        loopVolume: 0.4, // beep volume after the first pass (REPLAY restarts at full)
         toneHz: 640,
         replayLabel: 'REPLAY',
-        slotsLabel: 'CALL SIGN',
+        codeLabel: 'INTERCEPTED CODE', // the dots and dashes stay on screen; nothing is decoded for the player
         answer: 'nova',
         wrongFirst: [{ id: 'nova_30', speaker: 'nova', text: 'Use the card. Short and long. Dots and dashes.' }] as Line[],
         success: [{ id: 'nova_31', speaker: 'nova', text: "...Nova. He named me. I didn't know." }] as Line[],
@@ -371,18 +377,16 @@ export const CONFIG = {
       bangalore: {
         header: 'VISHAL K. — BANGALORE — PLANTED 2020 — COORDINATES 12.97° N',
         entries: [
+          'Founder & Product Lead, Rivl (2025–2026): built a revenue intelligence platform unifying competitive and deal intelligence — AI pipelines for competitor discovery, web ingestion, LLM analysis and win/loss. Concept to launch in 9 months.',
           'Tech & Operations Lead, Rams Interiors (2020–2022): digitised operations, project tracking, vendor coordination and reporting.',
           'Growth & Revenue Operations Lead, Keshav Interiors (2025): contributed to 120% year-on-year revenue growth; moved sales and operations to digital-first workflows.',
-          'Founder & Product Lead, Rivl (2025–2026): built a revenue intelligence platform unifying competitive and deal intelligence — AI pipelines for competitor discovery, web ingestion, LLM analysis and win/loss. Concept to launch in 9 months.',
-          "What didn't work: [PLACEHOLDER]",
-          'What I learned: [PLACEHOLDER]',
         ],
       },
       london: {
         header: 'VISHAL K. — LONDON — PLANTED 2022 — COORDINATES 51.5° N',
         entries: [
-          'MS Engineering Management, Kingston University London (2022–2023). Ran founder meetups connecting students with the London startup ecosystem.',
           "Commercial Analyst, Sainsbury's / Argos (2023–2025): commercial planning for a ~£700M category in an 18-person team; coordinated operations across Europe, China and India; automated recurring analysis and reporting, later adopted across multiple categories.",
+          'MS Engineering Management, Kingston University London (2022–2023). Ran founder meetups connecting students with the London startup ecosystem.',
         ],
       },
       queensland: {
@@ -392,7 +396,7 @@ export const CONFIG = {
         ],
       },
     },
-    personnelCharMs: 6,
+    personnelTypeMs: 2500, // each personnel file finishes typing in this long, whatever its length
 
     finalRelay: {
       intro: [

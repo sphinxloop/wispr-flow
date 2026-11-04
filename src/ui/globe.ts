@@ -51,6 +51,11 @@ export class Globe {
   private lam: number;
   private phi: number;
   private spinning = true;
+  private holdSpinUntil = 0; // idle spin stays paused until this time (drag / flick)
+  private drag: { id: number; x: number; y: number; moved: boolean; t: number } | null = null;
+  private clickBlocked = false; // the pointer travelled: this click was a drag, not a node click
+  private velLam = 0; // deg/s, flick inertia
+  private velPhi = 0;
   private tween: Tween | null = null;
   private fill = false;
   private proj: GeoProjection = geoOrthographic().clipAngle(90).precision(0.4);
@@ -79,7 +84,14 @@ export class Globe {
     this.ro.observe(canvas);
     canvas.addEventListener('pointermove', this.onMove);
     canvas.addEventListener('click', this.onClick);
-    canvas.addEventListener('pointerleave', () => { canvas.style.cursor = ''; });
+    canvas.addEventListener('pointerleave', () => { if (!this.drag) canvas.style.cursor = G.draggable ? 'grab' : ''; });
+    if (G.draggable) {
+      canvas.style.touchAction = 'none';
+      canvas.style.cursor = 'grab';
+      canvas.addEventListener('pointerdown', this.onDown);
+      canvas.addEventListener('pointerup', this.onUp);
+      canvas.addEventListener('pointercancel', this.onUp);
+    }
     loadLand().then((l) => { this.land = l; }).catch(() => {});
     this.raf = requestAnimationFrame(this.frame);
   }
@@ -115,6 +127,7 @@ export class Globe {
   /** Smoothly rotate so the point is centred. Idle spin pauses. Resolves when done (or when replaced). */
   focusOn(lat: number, lon: number, ms: number): Promise<void> {
     this.spinning = false;
+    this.velLam = this.velPhi = 0;
     this.lastFocus = [lat, lon];
     this.tween?.done();
     return new Promise<void>((resolve) => {
@@ -130,6 +143,7 @@ export class Globe {
     this.tween?.done();
     this.tween = null;
     this.spinning = true;
+    this.holdSpinUntil = 0;
   }
 
   /** Great-circle arcs drawn one after another, then pulsing. Resolves when drawn. */
@@ -176,8 +190,54 @@ export class Globe {
     return best;
   }
 
-  private onMove = (e: PointerEvent) => { this.canvas.style.cursor = this.hit(e) ? 'pointer' : ''; };
+  private onDown = (e: PointerEvent) => {
+    if (this.tween || (e.pointerType === 'mouse' && e.button !== 0)) return; // let focus animations finish
+    this.drag = { id: e.pointerId, x: e.clientX, y: e.clientY, moved: false, t: performance.now() };
+    this.clickBlocked = false;
+    this.velLam = this.velPhi = 0;
+    this.holdSpinUntil = Infinity;
+    try { this.canvas.setPointerCapture(e.pointerId); } catch { /* ignore */ }
+    this.canvas.style.cursor = 'grabbing';
+  };
+
+  private onUp = (e: PointerEvent) => {
+    const d = this.drag;
+    if (!d || d.id !== e.pointerId) return;
+    this.drag = null;
+    try { this.canvas.releasePointerCapture(e.pointerId); } catch { /* ignore */ }
+    // a flick only counts if the pointer was still moving when released
+    if (performance.now() - d.t > 90) this.velLam = this.velPhi = 0;
+    this.holdSpinUntil = performance.now() + CONFIG.act3.globe.resumeSpinMs;
+    this.canvas.style.cursor = this.hit(e) ? 'pointer' : 'grab';
+  };
+
+  private onMove = (e: PointerEvent) => {
+    const d = this.drag;
+    if (d && d.id === e.pointerId) {
+      const dx = e.clientX - d.x;
+      const dy = e.clientY - d.y;
+      if (!d.moved && Math.hypot(dx, dy) < 5) return;
+      d.moved = true;
+      this.clickBlocked = true;
+      const now = performance.now();
+      const dt = Math.max(1, now - d.t) / 1000;
+      const rCss = Math.min(this.w, this.h) * (this.fill ? 0.455 : 0.4) / this.dpr;
+      const k = 180 / Math.PI / rCss; // degrees per css pixel
+      const dLam = dx * k;
+      const dPhi = -dy * k;
+      this.lam += dLam;
+      this.phi = Math.max(-60, Math.min(60, this.phi + dPhi));
+      this.velLam = this.velLam * 0.5 + (dLam / dt) * 0.5;
+      this.velPhi = this.velPhi * 0.5 + (dPhi / dt) * 0.5;
+      d.x = e.clientX;
+      d.y = e.clientY;
+      d.t = now;
+      return;
+    }
+    this.canvas.style.cursor = this.hit(e) ? 'pointer' : CONFIG.act3.globe.draggable ? 'grab' : '';
+  };
   private onClick = (e: MouseEvent) => {
+    if (this.clickBlocked) { this.clickBlocked = false; return; }
     const name = this.hit(e);
     if (name) this.clickCb?.(name);
   };
@@ -205,7 +265,15 @@ export class Globe {
       this.lam = t.fromLam + (t.toLam - t.fromLam) * e;
       this.phi = t.fromPhi + (t.toPhi - t.fromPhi) * e;
       if (k >= 1) { this.tween = null; t.done(); }
-    } else if (this.spinning) {
+    } else if (this.drag) {
+      // being dragged: the pointer handler moves the globe
+    } else if (Math.abs(this.velLam) + Math.abs(this.velPhi) > 1) {
+      this.lam += this.velLam * dt;
+      this.phi = Math.max(-60, Math.min(60, this.phi + this.velPhi * dt));
+      const decay = Math.exp(-dt * 3.5);
+      this.velLam *= decay;
+      this.velPhi *= decay;
+    } else if (this.spinning && now >= this.holdSpinUntil) {
       this.lam += G.rotateDegPerSec * dt;
       this.phi += (G.tiltDeg - this.phi) * Math.min(1, dt * 2.5);
     }

@@ -39,22 +39,33 @@ export class PersonnelFile {
     let skip = !!opts.instant;
     panel.addEventListener('click', () => { skip = true; });
 
-    (async () => {
-      for (let i = 0; i < texts.length; i++) {
-        const el = els[i];
-        el.classList.add('typing');
-        for (let c = 1; c <= texts[i].length; c++) {
-          if (skip) break;
-          el.textContent = texts[i].slice(0, c);
-          await new Promise((r) => setTimeout(r, A.personnelCharMs));
-          if (token !== this.token) return;
-        }
-        el.textContent = texts[i];
-        el.classList.remove('typing');
+    // Type everything in ~personnelTypeMs total: chars per frame derived from the total length.
+    const total = texts.reduce((n, t) => n + t.length, 0);
+    const perMs = total / Math.max(1, A.personnelTypeMs);
+    const finish = () => {
+      texts.forEach((t, i) => { els[i].textContent = t; els[i].classList.remove('typing'); });
+    };
+    if (skip) finish();
+    else {
+      let typed = 0;
+      let last = performance.now();
+      const tick = (now: number) => {
         if (token !== this.token) return;
-        if (!skip) await new Promise((r) => setTimeout(r, 90));
-      }
-    })();
+        if (skip) return finish();
+        typed += (now - last) * perMs;
+        last = now;
+        let left = Math.floor(typed);
+        texts.forEach((t, i) => {
+          const n = Math.min(t.length, left);
+          left -= n;
+          els[i].textContent = t.slice(0, n);
+          els[i].classList.toggle('typing', n > 0 && n < t.length);
+        });
+        if (typed >= total) return finish();
+        requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    }
     return done;
   }
 
