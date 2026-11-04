@@ -21,7 +21,7 @@ import { wakeStep } from './steps/wake';
 import { evidenceStep } from './steps/evidence';
 import { grantedStep } from './steps/granted';
 import { act2IntroStep } from './steps/act2/act2Intro';
-import { act2Video1Step, act2Video2Step } from './steps/act2/act2Video';
+import { act2VideoStep } from './steps/act2/act2Video';
 import { relayStep } from './steps/act2/relay';
 import { archiveStep } from './steps/act2/archive';
 import { act3IntroStep } from './steps/act3/act3Intro';
@@ -96,7 +96,7 @@ new Debug(game, monitor.root, app);
 
 [
   startStep, introStep, standbyStep, spikeStep, wakeStep, evidenceStep, grantedStep,
-  act2IntroStep, act2Video1Step, act2Video2Step, relayStep, archiveStep,
+  act2IntroStep, act2VideoStep, relayStep, archiveStep,
   act3IntroStep, act3BangaloreStep, act3LondonStep, act3QueenslandStep, act3FinalStep, act3NetworkStep,
   ...act4Steps, finalStep,
   endStep,

@@ -24,8 +24,7 @@ export const CONFIG = {
 
   paths: {
     introVideo: '/media/intro.mp4',
-    act2aVideo: '/media/act2a.mp4', // "The Silence"
-    act2bVideo: '/media/act2b.mp4', // "The Last Channel"
+    act2Video: '/media/act2.mp4', // full Act 2 cinematic ("The Silence" + "The Last Channel")
     audioDir: '/audio/', // dialogue plays <audioDir><id>.mp3 when present
   },
 

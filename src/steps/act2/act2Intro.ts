@@ -11,7 +11,7 @@ export const act2IntroStep: Step = {
     enterMonitor(g, 'green', true);
     g.inputLocked = true;
     monitor.applyStage('act2');
-    cinematic.preload([CONFIG.paths.act2aVideo, CONFIG.paths.act2bVideo]);
+    cinematic.preload([CONFIG.paths.act2Video]);
 
     await monitor.typeLines(CONFIG.act2.loading, { className: 'success' });
     await g.dialogue.play(CONFIG.act2.today, g.signal);
@@ -24,6 +24,6 @@ export const act2IntroStep: Step = {
     for (let t = 0; t < ms; t += every) setTimeout(() => { if (!sig.aborted) g.sfx.glitch(); }, t);
     await fx;
     effects.cutToBlack();
-    g.goto('act2Video1');
+    g.goto('act2Video');
   },
 };
